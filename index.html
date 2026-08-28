@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PoE1 Skill Gem Viewer</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1015;--p:#151a22;--p2:#1a202a;--line:#2d3745;--tx:#e7e2d6;--mut:#9aa6b5;--gold:#d7b86f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
+.app{max-width:1600px;margin:auto;padding:14px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+h1{font-size:20px;margin:0;color:#f0e2bf}.small{font-size:12px;color:var(--mut)}button,input,select{font:inherit}
+.status{font-size:12px;color:var(--mut);margin-top:4px}.err{color:#ff9696}
+.stats{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}.st{padding:9px;background:var(--p);border:1px solid var(--line);border-radius:8px}
+.st b{display:block;font-size:18px;color:#f1dfb6}.st span{font-size:11px;color:var(--mut)}
+.filters{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:7px;margin-bottom:9px}
+input,select{background:#11161d;border:1px solid #354153;color:var(--tx);border-radius:7px;padding:9px}
+.main{display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{border:1px solid var(--line);background:var(--p);border-radius:9px;overflow:hidden}
+.ph{padding:11px 12px;border-bottom:1px solid var(--line);font-weight:700}.tw{max-height:calc(100vh - 230px);overflow:auto;min-height:520px}
+table{width:100%;border-collapse:collapse;font-size:12px}th{position:sticky;top:0;background:#1b222c;color:#abb7c5;text-align:left;padding:8px}
+td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:hover{background:#202834}tbody tr.sel{background:#2a2618}
+.badge{display:inline-block;padding:2px 6px;border:1px solid #3b4655;border-radius:999px;font-size:10px}.orb{display:inline-block;width:9px;height:9px;border-radius:50%}
+.r{background:#dd6262}.g{background:#62c17e}.b{background:#65a7e8}.w{background:#ddd}.detail{padding:13px;max-height:calc(100vh - 230px);overflow:auto}
+.detail h2{margin:0 0 4px;color:#f0e2bf}.id{font:11px ui-monospace,monospace;color:#8795a7;word-break:break-all}.desc{margin:11px 0;line-height:1.6;font-size:13px}
+.kv{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.box{padding:8px;background:#10151c;border:1px solid #2c3644;border-radius:7px}.box .k{font-size:10px;color:#8793a2}.box .v{font-size:12px;margin-top:2px;word-break:break-word}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
+pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
+.pager{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between}.pager button{background:#202733;color:var(--tx);border:1px solid #394555;border-radius:6px;padding:5px 9px}
+@media(max-width:900px){.stats{grid-template-columns:repeat(4,1fr)}.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}.main{grid-template-columns:1fr}.tw,.detail{max-height:none}.detail{min-height:320px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><div><h1>PoE1 Skill Gem Viewer</h1><div class="small">GitHub Pages 분할 데이터 버전</div></div><div id="status" class="status">manifest 로딩 중…</div></div>
+  <div class="stats">
+    <div class="st"><b id="sTotal">-</b><span>전체</span></div><div class="st"><b id="sActive">-</b><span>액티브</span></div>
+    <div class="st"><b id="sSupport">-</b><span>보조</span></div><div class="st"><b id="sStd">-</b><span>일반</span></div>
+    <div class="st"><b id="sVaal">-</b><span>바알</span></div><div class="st"><b id="sTrans">-</b><span>변형</span></div>
+    <div class="st"><b id="sAwk">-</b><span>각성</span></div>
+  </div>
+  <div class="filters">
+    <input id="q" placeholder="젬 이름 / effectId / itemId 검색">
+    <select id="kind"><option value="">종류 전체</option><option value="active">액티브</option><option value="support">보조</option></select>
+    <select id="variant"><option value="">변형 전체</option><option value="standard">일반</option><option value="vaal">바알</option><option value="transfigured">변형</option><option value="awakened">각성</option></select>
+    <select id="color"><option value="">색상 전체</option><option value="r">빨강</option><option value="g">초록</option><option value="b">파랑</option><option value="w">흰색</option></select>
+  </div>
+  <div class="main">
+    <section class="panel"><div class="ph">스킬젬 목록 <span id="count" class="small"></span></div>
+      <div class="tw"><table><thead><tr><th>색</th><th>이름</th><th>종류</th><th>변형</th><th>Effect ID</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="pager"><span id="pageText" class="small"></span><div><button id="prev">이전</button> <button id="next">다음</button></div></div>
+    </section>
+    <section class="panel"><div class="ph">상세</div><div class="detail" id="detail"><span class="small">젬을 선택하세요.</span></div></section>
+  </div>
+</div>
+<script>
+const DATA_BASE='./data/';
+const MANIFEST_PATH=DATA_BASE+'manifest.json';
+const PAGE_SIZE=100;
+let M=null, all=[], filtered=[], page=1, selected=-1;
+const cache=new Map();
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const kindName=v=>v==='active'?'액티브':v==='support'?'보조':v;
+const variantName=v=>({standard:'일반',vaal:'바알',transfigured:'변형',awakened:'각성'})[v]||v;
+function setStatus(t,e=false){$('#status').textContent=t;$('#status').classList.toggle('err',e)}
+function scalar(type,text){if(type==='null')return null;if(type==='boolean')return text==='true';if(type==='integer')return parseInt(text,10);if(type==='number')return Number(text);return text}
+function nodeVal(el){const t=el.getAttribute('type');if(el.tagName==='property')return scalar(t,el.textContent||'');if(el.tagName==='item'){if(t==='object')return obj(el);if(t==='array')return [...el.children].map(nodeVal);return scalar(t,el.textContent||'')}if(el.tagName==='object')return obj(el);if(el.tagName==='array')return [...el.children].filter(x=>x.tagName==='item').map(nodeVal);return obj(el)}
+function obj(el){const o={};if(!el)return o;for(const c of el.children){const n=c.getAttribute('name');if(n!==null)o[n]=nodeVal(c)}return o}
+async function loadManifest(){
+ try{
+   const r=await fetch(MANIFEST_PATH,{cache:'no-cache'}); if(!r.ok)throw new Error('HTTP '+r.status);
+   M=await r.json(); all=M.gems.map((x,i)=>({...x,_i:i})); filtered=[...all];
+   const c={total:all.length,active:0,support:0,standard:0,vaal:0,transfigured:0,awakened:0};
+   for(const g of all){if(c[g.kind]!=null)c[g.kind]++;if(c[g.variant]!=null)c[g.variant]++}
+   $('#sTotal').textContent=c.total;$('#sActive').textContent=c.active;$('#sSupport').textContent=c.support;$('#sStd').textContent=c.standard;$('#sVaal').textContent=c.vaal;$('#sTrans').textContent=c.transfigured;$('#sAwk').textContent=c.awakened;
+   setStatus(`${all.length.toLocaleString()}개 젬 · ${M.chunks.length}개 데이터 파일`);
+   apply();
+ }catch(e){setStatus('manifest 로드 실패: '+e.message,true)}
+}
+function apply(){
+ const q=$('#q').value.trim().toLowerCase(),k=$('#kind').value,v=$('#variant').value,c=$('#color').value;
+ filtered=all.filter(g=>(!k||g.kind===k)&&(!v||g.variant===v)&&(!c||g.color===c)&&(!q||`${g.name}\n${g.effectId}\n${g.itemId}`.toLowerCase().includes(q)));
+ page=1;render()
+}
+function render(){
+ const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));page=Math.max(1,Math.min(page,pages));
+ const part=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+ $('#rows').innerHTML=part.map(g=>`<tr data-i="${g._i}" class="${selected===g._i?'sel':''}"><td><span class="orb ${esc(g.color)}"></span></td><td>${esc(g.name)}</td><td><span class="badge">${esc(kindName(g.kind))}</span></td><td><span class="badge">${esc(variantName(g.variant))}</span></td><td><code>${esc(g.effectId)}</code></td></tr>`).join('');
+ $('#count').textContent=`${filtered.length.toLocaleString()} / ${all.length.toLocaleString()}`;
+ $('#pageText').textContent=`${page} / ${pages}`;
+ $('#prev').disabled=page<=1;$('#next').disabled=page>=pages;
+ document.querySelectorAll('#rows tr').forEach(tr=>tr.onclick=()=>showGem(Number(tr.dataset.i)));
+}
+async function getChunk(file){
+ if(cache.has(file))return cache.get(file);
+ setStatus(`${file} 로딩 중…`);
+ const r=await fetch(DATA_BASE+file,{cache:'force-cache'});if(!r.ok)throw new Error('HTTP '+r.status);
+ const text=await r.text();const doc=new DOMParser().parseFromString(text,'application/xml');
+ cache.set(file,doc);setStatus(`${all.length.toLocaleString()}개 젬 · ${M.chunks.length}개 데이터 파일`);
+ return doc;
+}
+async function showGem(i){
+ selected=i;render();const g=all[i];$('#detail').innerHTML='<span class="small">상세 데이터 로딩 중…</span>';
+ try{
+   const doc=await getChunk(g.chunk);
+   const gem=[...doc.querySelectorAll('gem')].find(x=>x.getAttribute('effectId')===g.effectId);
+   if(!gem)throw new Error('chunk에서 gem을 찾지 못했습니다.');
+   const d=obj(gem.querySelector(':scope > repoeGemData'));const a=d.active_skill||{},b=d.base_item||{},s=d.static||{},pl=d.per_level||{},l1=pl['1']||{};
+   const tags=Array.isArray(d.tags)?d.tags:[];
+   const levelRows=Object.keys(pl).sort((a,b)=>(+a||999)-(+b||999)).map(lv=>{const x=pl[lv]||{},req=x.stat_requirements||{},cost=x.costs||{},st=x.stat_text&&typeof x.stat_text==='object'?Object.values(x.stat_text).filter(Boolean).join('\n'):'-';return `<tr><td>${esc(lv)}</td><td>${esc(x.required_level??'-')}</td><td>${esc(req.str??'-')}</td><td>${esc(req.dex??'-')}</td><td>${esc(req.int??'-')}</td><td><pre>${esc(Object.entries(cost).map(([k,v])=>k+': '+v).join('\n')||'-')}</pre></td><td><pre>${esc(st)}</pre></td></tr>`}).join('');
+   $('#detail').innerHTML=`<h2>${esc(g.name)}</h2><div class="id">${esc(g.effectId)} · ${esc(g.itemId)}</div>
+   <div class="tags"><span class="tag">${esc(kindName(g.kind))}</span><span class="tag">${esc(variantName(g.variant))}</span>${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+   <div class="desc">${esc(a.description||'')}</div>
+   <div class="kv"><div class="box"><div class="k">최대 레벨</div><div class="v">${esc(b.max_level??'-')}</div></div><div class="box"><div class="k">1레벨 요구 레벨</div><div class="v">${esc(l1.required_level??'-')}</div></div><div class="box"><div class="k">시전 시간</div><div class="v">${esc(d.cast_time??'-')}</div></div><div class="box"><div class="k">치명타</div><div class="v">${esc(s.crit_chance??'-')}</div></div></div>
+   <div class="sect"><h3>레벨별 데이터</h3><div style="overflow:auto"><table><thead><tr><th>Lv</th><th>요구Lv</th><th>힘</th><th>민첩</th><th>지능</th><th>비용</th><th>표시 스탯</th></tr></thead><tbody>${levelRows}</tbody></table></div></div>
+   <div class="sect"><h3>원본 RePoE 데이터</h3><pre>${esc(JSON.stringify(d,null,2))}</pre></div>`;
+ }catch(e){$('#detail').innerHTML=`<span class="err">${esc(e.message)}</span>`}
+}
+$('#q').oninput=apply;['kind','variant','color'].forEach(id=>$('#'+id).onchange=apply);
+$('#prev').onclick=()=>{page--;render()};$('#next').onclick=()=>{page++;render()};
+loadManifest();
+</script></body></html>
