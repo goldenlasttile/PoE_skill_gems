@@ -25,7 +25,60 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
 pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
 .pager{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between}.pager button{background:#202733;color:var(--tx);border:1px solid #394555;border-radius:6px;padding:5px 9px}
-@media(max-width:900px){.stats{grid-template-columns:repeat(4,1fr)}.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}.main{grid-template-columns:1fr}.tw,.detail{max-height:none}.detail{min-height:320px}}
+
+.mobile-back{display:none}
+@media(max-width:900px){
+  body{overflow-x:hidden}
+  .app{padding:10px}
+  .top{align-items:flex-start}
+  .top h1{font-size:18px}
+  .status{max-width:48vw;text-align:right}
+  .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .st{padding:7px 6px;min-width:0}.st b{font-size:16px}.st span{font-size:10px}
+  .filters{grid-template-columns:1fr 1fr;gap:6px}
+  .filters input{grid-column:1/-1}
+  .main{display:block}
+  #listPanel{display:block}
+  #detailPanel{display:none}
+  .tw{max-height:none;min-height:0}
+  .tw table{table-layout:fixed}
+  .tw th,.tw td{padding:9px 6px}
+  .tw th:nth-child(1),.tw td:nth-child(1){width:30px;text-align:center}
+  .tw th:nth-child(2),.tw td:nth-child(2){width:auto}
+  .tw th:nth-child(3),.tw td:nth-child(3){width:55px}
+  .tw th:nth-child(4),.tw td:nth-child(4){width:55px}
+  .tw th:nth-child(5),.tw td:nth-child(5){display:none}
+  .tw td:nth-child(2){font-size:13px;font-weight:600;word-break:keep-all}
+  .pager{position:sticky;bottom:0;background:var(--p);z-index:5}
+  .detail{max-height:none;min-height:calc(100vh - 70px);padding:12px}
+  .detail h2{font-size:21px;padding-right:4px}
+  .kv{grid-template-columns:1fr 1fr}
+  .sect table{min-width:720px}
+  .mobile-back{
+    display:inline-flex;align-items:center;gap:5px;
+    position:sticky;top:0;z-index:20;
+    width:100%;margin:-12px -12px 12px;padding:11px 12px;
+    border:0;border-bottom:1px solid var(--line);
+    background:#1b222c;color:#f0e2bf;font-weight:700;text-align:left
+  }
+  body.mobile-detail .top,
+  body.mobile-detail .stats,
+  body.mobile-detail .filters,
+  body.mobile-detail #listPanel{display:none}
+  body.mobile-detail #detailPanel{display:block;border-radius:0;border-left:0;border-right:0}
+  body.mobile-detail .app{padding:0}
+  body.mobile-detail .main{display:block}
+}
+@media(max-width:520px){
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .st:nth-child(7){display:none}
+  .filters{grid-template-columns:1fr 1fr}
+  input,select{font-size:14px;padding:10px 8px;min-width:0}
+  .badge{font-size:9px;padding:2px 4px}
+  .kv{grid-template-columns:1fr}
+  .detail{font-size:14px}
+}
+
 </style>
 </head>
 <body>
@@ -44,11 +97,11 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
     <select id="color"><option value="">색상 전체</option><option value="r">빨강</option><option value="g">초록</option><option value="b">파랑</option><option value="w">흰색</option></select>
   </div>
   <div class="main">
-    <section class="panel"><div class="ph">스킬젬 목록 <span id="count" class="small"></span></div>
+    <section class="panel" id="listPanel"><div class="ph">스킬젬 목록 <span id="count" class="small"></span></div>
       <div class="tw"><table><thead><tr><th>색</th><th>이름</th><th>종류</th><th>변형</th><th>Effect ID</th></tr></thead><tbody id="rows"></tbody></table></div>
       <div class="pager"><span id="pageText" class="small"></span><div><button id="prev">이전</button> <button id="next">다음</button></div></div>
     </section>
-    <section class="panel"><div class="ph">상세</div><div class="detail" id="detail"><span class="small">젬을 선택하세요.</span></div></section>
+    <section class="panel" id="detailPanel"><div class="ph">상세</div><div class="detail" id="detail"><button class="mobile-back" id="mobileBack" type="button">← 목록으로</button><span class="small">젬을 선택하세요.</span></div></section>
   </div>
 </div>
 <script>
@@ -61,6 +114,28 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kindName=v=>v==='active'?'액티브':v==='support'?'보조':v;
 const variantName=v=>({standard:'일반',vaal:'바알',transfigured:'변형',awakened:'각성'})[v]||v;
+const isMobile=()=>window.matchMedia('(max-width:900px)').matches;
+const mobileBackHtml=()=>'<button class="mobile-back" type="button" onclick="backToList()">← 목록으로</button>';
+function openMobileDetail(){
+  if(!isMobile())return;
+  document.body.classList.add('mobile-detail');
+  window.scrollTo({top:0,behavior:'auto'});
+  try{history.pushState({poeGemDetail:true},'','#gem-detail')}catch{}
+}
+function backToList(fromHistory=false){
+  if(!document.body.classList.contains('mobile-detail'))return;
+  document.body.classList.remove('mobile-detail');
+  window.scrollTo({top:0,behavior:'auto'});
+  if(!fromHistory && location.hash==='#gem-detail'){
+    try{history.back()}catch{}
+  }
+}
+window.addEventListener('popstate',()=>{
+  if(document.body.classList.contains('mobile-detail')) backToList(true);
+});
+window.addEventListener('resize',()=>{
+  if(!isMobile()) document.body.classList.remove('mobile-detail');
+});
 function setStatus(t,e=false){$('#status').textContent=t;$('#status').classList.toggle('err',e)}
 function scalar(type,text){if(type==='null')return null;if(type==='boolean')return text==='true';if(type==='integer')return parseInt(text,10);if(type==='number')return Number(text);return text}
 function nodeVal(el){const t=el.getAttribute('type');if(el.tagName==='property')return scalar(t,el.textContent||'');if(el.tagName==='item'){if(t==='object')return obj(el);if(t==='array')return [...el.children].map(nodeVal);return scalar(t,el.textContent||'')}if(el.tagName==='object')return obj(el);if(el.tagName==='array')return [...el.children].filter(x=>x.tagName==='item').map(nodeVal);return obj(el)}
@@ -99,7 +174,7 @@ async function getChunk(file){
  return doc;
 }
 async function showGem(i){
- selected=i;render();const g=all[i];$('#detail').innerHTML='<span class="small">상세 데이터 로딩 중…</span>';
+ selected=i;render();openMobileDetail();const g=all[i];$('#detail').innerHTML=mobileBackHtml()+'<span class="small">상세 데이터 로딩 중…</span>';
  try{
    const doc=await getChunk(g.chunk);
    const gem=[...doc.querySelectorAll('gem')].find(x=>x.getAttribute('effectId')===g.effectId);
@@ -107,15 +182,16 @@ async function showGem(i){
    const d=obj(gem.querySelector(':scope > repoeGemData'));const a=d.active_skill||{},b=d.base_item||{},s=d.static||{},pl=d.per_level||{},l1=pl['1']||{};
    const tags=Array.isArray(d.tags)?d.tags:[];
    const levelRows=Object.keys(pl).sort((a,b)=>(+a||999)-(+b||999)).map(lv=>{const x=pl[lv]||{},req=x.stat_requirements||{},cost=x.costs||{},st=x.stat_text&&typeof x.stat_text==='object'?Object.values(x.stat_text).filter(Boolean).join('\n'):'-';return `<tr><td>${esc(lv)}</td><td>${esc(x.required_level??'-')}</td><td>${esc(req.str??'-')}</td><td>${esc(req.dex??'-')}</td><td>${esc(req.int??'-')}</td><td><pre>${esc(Object.entries(cost).map(([k,v])=>k+': '+v).join('\n')||'-')}</pre></td><td><pre>${esc(st)}</pre></td></tr>`}).join('');
-   $('#detail').innerHTML=`<h2>${esc(g.name)}</h2><div class="id">${esc(g.effectId)} · ${esc(g.itemId)}</div>
+   $('#detail').innerHTML=mobileBackHtml()+`<h2>${esc(g.name)}</h2><div class="id">${esc(g.effectId)} · ${esc(g.itemId)}</div>
    <div class="tags"><span class="tag">${esc(kindName(g.kind))}</span><span class="tag">${esc(variantName(g.variant))}</span>${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
    <div class="desc">${esc(a.description||'')}</div>
    <div class="kv"><div class="box"><div class="k">최대 레벨</div><div class="v">${esc(b.max_level??'-')}</div></div><div class="box"><div class="k">1레벨 요구 레벨</div><div class="v">${esc(l1.required_level??'-')}</div></div><div class="box"><div class="k">시전 시간</div><div class="v">${esc(d.cast_time??'-')}</div></div><div class="box"><div class="k">치명타</div><div class="v">${esc(s.crit_chance??'-')}</div></div></div>
    <div class="sect"><h3>레벨별 데이터</h3><div style="overflow:auto"><table><thead><tr><th>Lv</th><th>요구Lv</th><th>힘</th><th>민첩</th><th>지능</th><th>비용</th><th>표시 스탯</th></tr></thead><tbody>${levelRows}</tbody></table></div></div>
    <div class="sect"><h3>원본 RePoE 데이터</h3><pre>${esc(JSON.stringify(d,null,2))}</pre></div>`;
- }catch(e){$('#detail').innerHTML=`<span class="err">${esc(e.message)}</span>`}
+ }catch(e){$('#detail').innerHTML=mobileBackHtml()+`<span class="err">${esc(e.message)}</span>`}
 }
 $('#q').oninput=apply;['kind','variant','color'].forEach(id=>$('#'+id).onchange=apply);
 $('#prev').onclick=()=>{page--;render()};$('#next').onclick=()=>{page++;render()};
+$('#mobileBack').onclick=()=>backToList();
 loadManifest();
 </script></body></html>
