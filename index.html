@@ -12,6 +12,26 @@ h1{font-size:20px;margin:0;color:#f0e2bf}.small{font-size:12px;color:var(--mut)}
 .status{font-size:12px;color:var(--mut);margin-top:4px}.err{color:#ff9696}
 .stats{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}.st{padding:9px;background:var(--p);border:1px solid var(--line);border-radius:8px}
 .st b{display:block;font-size:18px;color:#f1dfb6}.st span{font-size:11px;color:var(--mut)}
+
+.tag-filter-wrap{margin:6px 0 10px;padding:9px;background:#10151c;border:1px solid var(--line);border-radius:9px}
+.tag-filter-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.tag-filter-help{font-size:10px;color:var(--mut)}
+.tag-filter-list{display:flex;flex-wrap:wrap;gap:5px}
+.tag-filter-btn{appearance:none;border:1px solid #42617e;background:#294d70;color:#e5edf6;border-radius:6px;padding:5px 9px;font-size:12px;line-height:1.15;cursor:pointer;transition:.12s ease;white-space:nowrap}
+.tag-filter-btn:hover{filter:brightness(1.12)}
+.tag-filter-btn.is-on{border-color:#74c98b;background:#244f39;box-shadow:inset 0 0 0 1px #74c98b55}
+.tag-filter-btn.is-off{border-color:#d86b6b;background:#4b292d;color:#ffb1b1;text-decoration:line-through}
+.tag-filter-btn.is-on::before{content:'✓ ';font-weight:800}
+.tag-filter-btn.is-off::before{content:'× ';font-weight:900}
+.tag-reset{border-color:#46505d;background:#171d25;color:#9ba6b4}
+.tag-filter-btn.tag-fire{color:#ff875f}.tag-filter-btn.tag-cold{color:#73c9ef}.tag-filter-btn.tag-lightning{color:#ffd15c}
+.tag-filter-btn.tag-physical{color:#e9a095}.tag-filter-btn.tag-chaos{color:#cf8ee8}.tag-filter-btn.tag-attack{color:#ff9854}
+.tag-filter-btn.tag-spell{color:#a8c6ff}.tag-filter-btn.tag-minion{color:#77d0b1}.tag-filter-btn.tag-critical{color:#dca4f2}
+.tag-filter-btn.is-on,.tag-filter-btn.is-off{color:inherit}
+.tag-filter-btn.is-off{color:#ffaaaa}
+.nav-float{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));z-index:1000;display:flex;gap:6px;padding:6px;background:#0b0f15dc;border:1px solid #3a4657;border-radius:12px;box-shadow:0 5px 22px #0008;backdrop-filter:blur(8px)}
+.nav-float button{width:44px;height:44px;border:1px solid #415064;border-radius:9px;background:#1d2632;color:#e7edf5;font-size:20px;font-weight:700;display:grid;place-items:center;padding:0}
+.nav-float button:active{transform:translateY(1px);background:#2a3747}
 .filters{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:7px;margin-bottom:9px}
 input,select{background:#11161d;border:1px solid #354153;color:var(--tx);border-radius:7px;padding:9px}
 .main{display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{border:1px solid var(--line);background:var(--p);border-radius:9px;overflow:hidden}
@@ -37,6 +57,10 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
   .status{max-width:48vw;text-align:right}
   .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
   .st{padding:7px 6px;min-width:0}.st b{font-size:16px}.st span{font-size:10px}
+  .tag-filter-wrap{padding:7px;margin:6px 0 8px}
+  .tag-filter-list{gap:4px}
+  .tag-filter-btn{padding:6px 8px;font-size:11px}
+  .tag-filter-help{font-size:9px}
   .filters{grid-template-columns:1fr 1fr;gap:6px}
   .filters input{grid-column:1/-1}
   .main{display:block}
@@ -71,6 +95,7 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
   body.mobile-detail .top,
   body.mobile-detail .stats,
   body.mobile-detail .filters,
+  body.mobile-detail .tag-filter-wrap,
   body.mobile-detail #listPanel{display:none}
   body.mobile-detail #detailPanel{display:block;border-radius:0;border-left:0;border-right:0}
   body.mobile-detail .app{padding:0}
@@ -97,6 +122,13 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
     <div class="st"><b id="sVaal">-</b><span>바알</span></div><div class="st"><b id="sTrans">-</b><span>변형</span></div>
     <div class="st"><b id="sAwk">-</b><span>각성</span></div>
   </div>
+  <div class="tag-filter-wrap" id="tagFilterWrap">
+    <div class="tag-filter-head">
+      <span class="small">스킬 태그</span>
+      <span class="tag-filter-help">1회 포함 · 2회 제외 · 3회 해제</span>
+    </div>
+    <div class="tag-filter-list" id="tagFilterList"></div>
+  </div>
   <div class="filters">
     <input id="q" placeholder="젬 이름 / effectId / itemId 검색">
     <select id="kind"><option value="">종류 전체</option><option value="active">액티브</option><option value="support">보조</option></select>
@@ -111,11 +143,17 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
     <section class="panel" id="detailPanel"><div class="ph">상세</div><div class="detail" id="detail"><button class="mobile-back" id="mobileBack" type="button">← 목록으로</button><span class="small">젬을 선택하세요.</span></div></section>
   </div>
 </div>
+<div class="nav-float" aria-label="페이지 탐색">
+  <button id="navBack" type="button" aria-label="뒤로" title="뒤로">‹</button>
+  <button id="navTop" type="button" aria-label="맨 위로" title="맨 위로">↑</button>
+  <button id="navForward" type="button" aria-label="앞으로" title="앞으로">›</button>
+</div>
 <script>
 const DATA_BASE='./data/';
 const MANIFEST_PATH=DATA_BASE+'manifest.json';
 const PAGE_SIZE=100;
-let M=null, all=[], filtered=[], page=1, selected=-1;
+let M=null, all=[], filtered=[], page=1, selected=-1, listScrollY=0;
+const tagStates=new Map(); // 0=중립, 1=포함, -1=제외
 const cache=new Map();
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -161,20 +199,36 @@ const isMobile=()=>window.matchMedia('(max-width:900px)').matches;
 const mobileBackHtml=()=>'<button class="mobile-back" type="button" onclick="backToList()">← 목록으로</button>';
 function openMobileDetail(){
   if(!isMobile())return;
+  listScrollY=window.scrollY||0;
+  saveFilterState();
   document.body.classList.add('mobile-detail');
   window.scrollTo({top:0,behavior:'auto'});
-  try{history.pushState({poeGemDetail:true},'','#gem-detail')}catch{}
+  if(location.hash!=='#gem-detail'){
+    try{history.pushState({poeGemDetail:true,selected},'','#gem-detail')}catch{}
+  }
+}
+function restoreListScroll(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:listScrollY,behavior:'auto'})));
 }
 function backToList(fromHistory=false){
   if(!document.body.classList.contains('mobile-detail'))return;
   document.body.classList.remove('mobile-detail');
-  window.scrollTo({top:0,behavior:'auto'});
+  restoreListScroll();
+  saveFilterState();
   if(!fromHistory && location.hash==='#gem-detail'){
     try{history.back()}catch{}
   }
 }
 window.addEventListener('popstate',()=>{
-  if(document.body.classList.contains('mobile-detail')) backToList(true);
+  if(!isMobile())return;
+  if(location.hash==='#gem-detail' && selected>=0){
+    document.body.classList.add('mobile-detail');
+    window.scrollTo({top:0,behavior:'auto'});
+  }else if(document.body.classList.contains('mobile-detail')){
+    backToList(true);
+  }else{
+    restoreListScroll();
+  }
 });
 window.addEventListener('resize',()=>{
   if(!isMobile()) document.body.classList.remove('mobile-detail');
@@ -183,6 +237,65 @@ function setStatus(t,e=false){$('#status').textContent=t;$('#status').classList.
 function scalar(type,text){if(type==='null')return null;if(type==='boolean')return text==='true';if(type==='integer')return parseInt(text,10);if(type==='number')return Number(text);return text}
 function nodeVal(el){const t=el.getAttribute('type');if(el.tagName==='property')return scalar(t,el.textContent||'');if(el.tagName==='item'){if(t==='object')return obj(el);if(t==='array')return [...el.children].map(nodeVal);return scalar(t,el.textContent||'')}if(el.tagName==='object')return obj(el);if(el.tagName==='array')return [...el.children].filter(x=>x.tagName==='item').map(nodeVal);return obj(el)}
 function obj(el){const o={};if(!el)return o;for(const c of el.children){const n=c.getAttribute('name');if(n!==null)o[n]=nodeVal(c)}return o}
+
+const FILTER_STORAGE_KEY='poe1-gem-viewer-filter-v2';
+const tagAccentClass=k=>({
+  fire:'tag-fire',cold:'tag-cold',lightning:'tag-lightning',physical:'tag-physical',
+  chaos:'tag-chaos',attack:'tag-attack',spell:'tag-spell',minion:'tag-minion',critical:'tag-critical'
+}[k]||'');
+
+function saveFilterState(){
+  try{
+    const states={};
+    for(const [k,v] of tagStates)if(v)states[k]=v;
+    sessionStorage.setItem(FILTER_STORAGE_KEY,JSON.stringify({
+      q:$('#q')?.value||'',kind:$('#kind')?.value||'',variant:$('#variant')?.value||'',
+      color:$('#color')?.value||'',tags:states,page,listScrollY
+    }));
+  }catch{}
+}
+function restoreFilterState(){
+  try{
+    const x=JSON.parse(sessionStorage.getItem(FILTER_STORAGE_KEY)||'null');
+    if(!x)return;
+    if($('#q'))$('#q').value=x.q||'';
+    if($('#kind'))$('#kind').value=x.kind||'';
+    if($('#variant'))$('#variant').value=x.variant||'';
+    if($('#color'))$('#color').value=x.color||'';
+    tagStates.clear();
+    for(const [k,v] of Object.entries(x.tags||{}))if(v===1||v===-1)tagStates.set(k,v);
+    if(Number.isFinite(Number(x.page)))page=Math.max(1,Number(x.page));
+    if(Number.isFinite(Number(x.listScrollY)))listScrollY=Number(x.listScrollY);
+  }catch{}
+}
+function renderTagFilters(){
+  const box=$('#tagFilterList');if(!box||!M)return;
+  const order=Array.isArray(M.tagOrder)?M.tagOrder:Object.keys(M.tagLabels||{});
+  const labels=M.tagLabels||{};
+  box.innerHTML=`<button class="tag-filter-btn tag-reset" type="button" data-reset="1">Reset</button>`+
+    order.map(k=>{
+      const st=tagStates.get(k)||0;
+      return `<button type="button" class="tag-filter-btn ${tagAccentClass(k)} ${st===1?'is-on':st===-1?'is-off':''}" data-tag="${esc(k)}" data-state="${st}" title="${st===1?'포함':st===-1?'제외':'선택 안 함'}">${esc(labels[k]||k)}</button>`;
+    }).join('');
+  box.querySelector('[data-reset="1"]').onclick=()=>{
+    tagStates.clear();renderTagFilters();apply(true);
+  };
+  box.querySelectorAll('[data-tag]').forEach(btn=>btn.onclick=()=>{
+    const k=btn.dataset.tag;
+    const now=tagStates.get(k)||0;
+    const next=now===0?1:now===1?-1:0;
+    if(next===0)tagStates.delete(k);else tagStates.set(k,next);
+    renderTagFilters();apply(true);
+  });
+}
+function tagPass(g){
+  const tags=new Set(Array.isArray(g.tags)?g.tags:[]);
+  for(const [k,v] of tagStates){
+    if(v===1 && !tags.has(k))return false;
+    if(v===-1 && tags.has(k))return false;
+  }
+  return true;
+}
 async function loadManifest(){
  try{
    const r=await fetch(MANIFEST_PATH,{cache:'no-cache'}); if(!r.ok)throw new Error('HTTP '+r.status);
@@ -191,13 +304,18 @@ async function loadManifest(){
    for(const g of all){if(c[g.kind]!=null)c[g.kind]++;if(c[g.variant]!=null)c[g.variant]++}
    $('#sTotal').textContent=c.total;$('#sActive').textContent=c.active;$('#sSupport').textContent=c.support;$('#sStd').textContent=c.standard;$('#sVaal').textContent=c.vaal;$('#sTrans').textContent=c.transfigured;$('#sAwk').textContent=c.awakened;
    setStatus(`${all.length.toLocaleString()}개 젬 · ${M.chunks.length}개 데이터 파일`);
-   apply();
+   restoreFilterState();
+   renderTagFilters();
+   apply(false,true);
  }catch(e){setStatus('manifest 로드 실패: '+e.message,true)}
 }
-function apply(){
+function apply(resetPage=true,restoreScroll=false){
  const q=$('#q').value.trim().toLowerCase(),k=$('#kind').value,v=$('#variant').value,c=$('#color').value;
- filtered=all.filter(g=>(!k||g.kind===k)&&(!v||g.variant===v)&&(!c||g.color===c)&&(!q||`${g.name}\n${g.effectId}\n${g.itemId}`.toLowerCase().includes(q)));
- page=1;render()
+ filtered=all.filter(g=>(!k||g.kind===k)&&(!v||g.variant===v)&&(!c||g.color===c)&&tagPass(g)&&(!q||`${g.name}\n${g.effectId}\n${g.itemId}`.toLowerCase().includes(q)));
+ if(resetPage)page=1;
+ render();
+ saveFilterState();
+ if(restoreScroll && isMobile())requestAnimationFrame(()=>window.scrollTo({top:listScrollY,behavior:'auto'}));
 }
 function render(){
  const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));page=Math.max(1,Math.min(page,pages));
@@ -207,6 +325,7 @@ function render(){
  $('#pageText').textContent=`${page} / ${pages}`;
  $('#prev').disabled=page<=1;$('#next').disabled=page>=pages;
  document.querySelectorAll('#rows tr').forEach(tr=>tr.onclick=()=>showGem(Number(tr.dataset.i)));
+ saveFilterState();
 }
 async function getChunk(file){
  if(cache.has(file))return cache.get(file);
@@ -237,5 +356,11 @@ async function showGem(i){
 $('#q').oninput=apply;['kind','variant','color'].forEach(id=>$('#'+id).onchange=apply);
 $('#prev').onclick=()=>{page--;render()};$('#next').onclick=()=>{page++;render()};
 $('#mobileBack').onclick=()=>backToList();
+$('#navBack').onclick=()=>{
+  if(isMobile()&&document.body.classList.contains('mobile-detail'))backToList();
+  else history.back();
+};
+$('#navTop').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+$('#navForward').onclick=()=>history.forward();
 loadManifest();
 </script></body></html>
