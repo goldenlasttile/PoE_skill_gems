@@ -163,9 +163,8 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
 <script>
 const DATA_BASE='./data/';
 const MANIFEST_PATH=DATA_BASE+'manifest.json';
-const TAG_INDEX_PATH=DATA_BASE+'tag_index.json?v=20260903-1';
 const PAGE_SIZE=100;
-let M=null, T=null, all=[], filtered=[], page=1, selected=-1, listScrollY=0;
+let M=null, all=[], filtered=[], page=1, selected=-1, listScrollY=0;
 const tagStates=new Map(); // 0=중립, 1=포함, -1=제외
 const cache=new Map();
 const $=s=>document.querySelector(s);
@@ -459,12 +458,11 @@ function restoreFilterState(){
   }catch{}
 }
 function renderTagFilters(){
-  const box=$('#tagFilterList');if(!box)return;
-  const labels=(T&&T.labels)||M?.tagLabels||{};
-  const order=(T&&Array.isArray(T.order)&&T.order.length)?T.order:
-    (Array.isArray(M?.tagOrder)&&M.tagOrder.length?M.tagOrder:Object.keys(labels));
+  const box=$('#tagFilterList');if(!box||!M)return;
+  const labels=M.tagLabels||{};
+  const order=(Array.isArray(M.tagOrder)&&M.tagOrder.length)?M.tagOrder:Object.keys(labels);
   if(!order.length){
-    box.innerHTML='<span class="err">태그 데이터를 불러오지 못했습니다.</span>';
+    box.innerHTML='<span class="err">manifest.json에 태그 정보가 없습니다.</span>';
     return;
   }
   box.innerHTML=`<button class="tag-filter-btn tag-reset" type="button" data-reset="1">Reset</button>`+
@@ -494,37 +492,45 @@ function tagPass(g){
 }
 async function loadManifest(){
  try{
-   const [mr,tr]=await Promise.all([
-     fetch(MANIFEST_PATH+'?v=20260903-1',{cache:'no-store'}),
-     fetch(TAG_INDEX_PATH,{cache:'no-store'})
-   ]);
-   if(!mr.ok)throw new Error('manifest HTTP '+mr.status);
-   if(!tr.ok)throw new Error('tag_index HTTP '+tr.status);
+   const r=await fetch(MANIFEST_PATH+'?v=20260904-1',{cache:'no-store'});
+   if(!r.ok)throw new Error('manifest HTTP '+r.status);
 
-   M=await mr.json();
-   T=await tr.json();
+   M=await r.json();
 
-   const tagMap=(T&&T.gems)||{};
+   if(!Array.isArray(M.gems))throw new Error('manifest.json의 gems 데이터가 없습니다.');
+   if(!M.tagLabels || !Object.keys(M.tagLabels).length)
+     throw new Error('manifest.json의 tagLabels 데이터가 없습니다.');
+   if(!Array.isArray(M.tagOrder) || !M.tagOrder.length)
+     throw new Error('manifest.json의 tagOrder 데이터가 없습니다.');
+
    all=M.gems.map((x,i)=>({
      ...x,
-     tags:Array.isArray(tagMap[x.effectId])?tagMap[x.effectId]:(Array.isArray(x.tags)?x.tags:[]),
+     tags:Array.isArray(x.tags)?x.tags:[],
      _i:i
    }));
    filtered=[...all];
 
    const c={total:all.length,active:0,support:0,standard:0,vaal:0,transfigured:0,awakened:0};
-   for(const g of all){if(c[g.kind]!=null)c[g.kind]++;if(c[g.variant]!=null)c[g.variant]++}
-   $('#sTotal').textContent=c.total;$('#sActive').textContent=c.active;$('#sSupport').textContent=c.support;
-   $('#sStd').textContent=c.standard;$('#sVaal').textContent=c.vaal;$('#sTrans').textContent=c.transfigured;$('#sAwk').textContent=c.awakened;
+   for(const g of all){
+     if(c[g.kind]!=null)c[g.kind]++;
+     if(c[g.variant]!=null)c[g.variant]++;
+   }
+   $('#sTotal').textContent=c.total;
+   $('#sActive').textContent=c.active;
+   $('#sSupport').textContent=c.support;
+   $('#sStd').textContent=c.standard;
+   $('#sVaal').textContent=c.vaal;
+   $('#sTrans').textContent=c.transfigured;
+   $('#sAwk').textContent=c.awakened;
 
    restoreFilterState();
    renderTagFilters();
-   setStatus(`${all.length.toLocaleString()}개 젬 · 태그 ${(T.order||[]).length}개`);
+   setStatus(`${all.length.toLocaleString()}개 젬 · 태그 ${M.tagOrder.length}개`);
    apply(false,true);
  }catch(e){
-   setStatus('데이터 로드 실패: '+e.message,true);
+   setStatus('manifest 로드 실패: '+e.message,true);
    const box=$('#tagFilterList');
-   if(box)box.innerHTML='<span class="err">태그 파일 로드 실패 — data/tag_index.json 업로드 여부를 확인하세요.</span>';
+   if(box)box.innerHTML='<span class="err">data/manifest.json 위치와 내용을 확인하세요.</span>';
  }
 }
 function apply(resetPage=true,restoreScroll=false){
