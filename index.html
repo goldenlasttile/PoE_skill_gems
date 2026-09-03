@@ -24,6 +24,8 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 .kv{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.box{padding:8px;background:#10151c;border:1px solid #2c3644;border-radius:7px}.box .k{font-size:10px;color:#8793a2}.box .v{font-size:12px;margin-top:2px;word-break:break-word}
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
 pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
+.level-priority-table td:nth-child(2) pre{margin:0;line-height:1.55}
+.level-priority-table td:nth-child(3) pre{margin:0}
 .pager{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between}.pager button{background:#202733;color:var(--tx);border:1px solid #394555;border-radius:6px;padding:5px 9px}
 
 .mobile-back{display:none}
@@ -53,7 +55,12 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
   .detail{max-height:none;min-height:calc(100vh - 70px);padding:12px}
   .detail h2{font-size:21px;padding-right:4px}
   .kv{grid-template-columns:1fr 1fr}
-  .sect table{min-width:720px}
+  .sect table{min-width:760px}
+  .level-priority-table th:nth-child(1),.level-priority-table td:nth-child(1){position:sticky;left:0;z-index:2;background:var(--p);width:48px;min-width:48px}
+  .level-priority-table th:nth-child(2),.level-priority-table td:nth-child(2){min-width:330px}
+  .level-priority-table th:nth-child(3),.level-priority-table td:nth-child(3){min-width:105px}
+  .level-priority-table th:nth-child(4),.level-priority-table td:nth-child(4){min-width:75px}
+  .level-priority-table th:nth-child(5),.level-priority-table td:nth-child(5){min-width:155px}
   .mobile-back{
     display:inline-flex;align-items:center;gap:5px;
     position:sticky;top:0;z-index:20;
@@ -114,6 +121,42 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kindName=v=>v==='active'?'액티브':v==='support'?'보조':v;
 const variantName=v=>({standard:'일반',vaal:'바알',transfigured:'변형',awakened:'각성'})[v]||v;
+function formatSeconds(ms){
+  if(ms===null||ms===undefined||ms==='')return '-';
+  const n=Number(ms);
+  if(!Number.isFinite(n))return String(ms);
+  if(n===0)return '즉시';
+  const sec=n/1000;
+  return `${Number(sec.toFixed(3))}초`;
+}
+function skillSpeedInfo(d,a,s){
+  const types=Array.isArray(a.types)?a.types:[];
+  if(types.includes('Attack')){
+    const raw=s.attack_speed_multiplier;
+    const pct=100+(raw==null?0:Number(raw));
+    return {label:'공격 속도', value:`기본 공격 속도의 ${Number.isFinite(pct)?pct:100}%`};
+  }
+  if(types.includes('Spell')){
+    return {label:'시전 시간', value:formatSeconds(d.cast_time)};
+  }
+  if(d.cast_time!==null&&d.cast_time!==undefined){
+    return {label:'사용 시간', value:formatSeconds(d.cast_time)};
+  }
+  return {label:'속도', value:'-'};
+}
+function formatCrit(raw){
+  if(raw===null||raw===undefined||raw==='')return '-';
+  const n=Number(raw);
+  return Number.isFinite(n)?`${Number((n/100).toFixed(2))}%`:String(raw);
+}
+function formatRequirements(req){
+  req=req||{};
+  const parts=[];
+  if(req.str!=null && Number(req.str)!==0)parts.push(`힘 ${req.str}`);
+  if(req.dex!=null && Number(req.dex)!==0)parts.push(`민첩 ${req.dex}`);
+  if(req.int!=null && Number(req.int)!==0)parts.push(`지능 ${req.int}`);
+  return parts.length?parts.join(' / '):'-';
+}
 const isMobile=()=>window.matchMedia('(max-width:900px)').matches;
 const mobileBackHtml=()=>'<button class="mobile-back" type="button" onclick="backToList()">← 목록으로</button>';
 function openMobileDetail(){
@@ -181,12 +224,13 @@ async function showGem(i){
    if(!gem)throw new Error('chunk에서 gem을 찾지 못했습니다.');
    const d=obj(gem.querySelector(':scope > repoeGemData'));const a=d.active_skill||{},b=d.base_item||{},s=d.static||{},pl=d.per_level||{},l1=pl['1']||{};
    const tags=Array.isArray(d.tags)?d.tags:[];
-   const levelRows=Object.keys(pl).sort((a,b)=>(+a||999)-(+b||999)).map(lv=>{const x=pl[lv]||{},req=x.stat_requirements||{},cost=x.costs||{},st=x.stat_text&&typeof x.stat_text==='object'?Object.values(x.stat_text).filter(Boolean).join('\n'):'-';return `<tr><td>${esc(lv)}</td><td>${esc(x.required_level??'-')}</td><td>${esc(req.str??'-')}</td><td>${esc(req.dex??'-')}</td><td>${esc(req.int??'-')}</td><td><pre>${esc(Object.entries(cost).map(([k,v])=>k+': '+v).join('\n')||'-')}</pre></td><td><pre>${esc(st)}</pre></td></tr>`}).join('');
+   const speedInfo=skillSpeedInfo(d,a,s);
+   const levelRows=Object.keys(pl).sort((a,b)=>(+a||999)-(+b||999)).map(lv=>{const x=pl[lv]||{},req=x.stat_requirements||{},cost=x.costs||{},st=x.stat_text&&typeof x.stat_text==='object'?Object.values(x.stat_text).filter(Boolean).join('\n'):'-';const reqText=formatRequirements(req);const costText=Object.entries(cost).filter(([,v])=>v!=null).map(([k,v])=>k+': '+v).join('\n')||'-';return `<tr><td><b>${esc(lv)}</b></td><td><pre>${esc(st)}</pre></td><td><pre>${esc(costText)}</pre></td><td>${esc(x.required_level??'-')}</td><td>${esc(reqText)}</td></tr>`}).join('');
    $('#detail').innerHTML=mobileBackHtml()+`<h2>${esc(g.name)}</h2><div class="id">${esc(g.effectId)} · ${esc(g.itemId)}</div>
    <div class="tags"><span class="tag">${esc(kindName(g.kind))}</span><span class="tag">${esc(variantName(g.variant))}</span>${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
    <div class="desc">${esc(a.description||'')}</div>
-   <div class="kv"><div class="box"><div class="k">최대 레벨</div><div class="v">${esc(b.max_level??'-')}</div></div><div class="box"><div class="k">1레벨 요구 레벨</div><div class="v">${esc(l1.required_level??'-')}</div></div><div class="box"><div class="k">시전 시간</div><div class="v">${esc(d.cast_time??'-')}</div></div><div class="box"><div class="k">치명타</div><div class="v">${esc(s.crit_chance??'-')}</div></div></div>
-   <div class="sect"><h3>레벨별 데이터</h3><div style="overflow:auto"><table><thead><tr><th>Lv</th><th>요구Lv</th><th>힘</th><th>민첩</th><th>지능</th><th>비용</th><th>표시 스탯</th></tr></thead><tbody>${levelRows}</tbody></table></div></div>
+   <div class="kv"><div class="box"><div class="k">최대 레벨</div><div class="v">${esc(b.max_level??'-')}</div></div><div class="box"><div class="k">${esc(speedInfo.label)}</div><div class="v">${esc(speedInfo.value)}</div></div><div class="box"><div class="k">치명타 확률</div><div class="v">${esc(formatCrit(s.crit_chance))}</div></div><div class="box"><div class="k">스킬 종류</div><div class="v">${esc((Array.isArray(a.types)?a.types:[]).includes('Attack')?'공격':(Array.isArray(a.types)?a.types:[]).includes('Spell')?'주문':'기타')}</div></div></div>
+   <div class="sect"><h3>레벨별 데이터</h3><div style="overflow:auto"><table class="level-priority-table"><thead><tr><th>레벨</th><th>표시 스탯</th><th>비용</th><th>요구 레벨</th><th>요구 능력치</th></tr></thead><tbody>${levelRows}</tbody></table></div></div>
    <div class="sect"><h3>원본 RePoE 데이터</h3><pre>${esc(JSON.stringify(d,null,2))}</pre></div>`;
  }catch(e){$('#detail').innerHTML=mobileBackHtml()+`<span class="err">${esc(e.message)}</span>`}
 }
