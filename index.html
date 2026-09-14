@@ -55,8 +55,28 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 .desc{margin:11px 0;line-height:1.6;font-size:13px}
 .kv{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.box{padding:8px;background:#10151c;border:1px solid #2c3644;border-radius:7px}.box .k{font-size:10px;color:#8793a2}.box .v{font-size:12px;margin-top:2px;word-break:break-word}
 .quality-box{grid-column:1/-1}
+.tooltip-box{grid-column:1/-1}
+.tooltip-text{font-size:13px;line-height:1.65;color:#e0e5eb;margin-top:5px;white-space:pre-line}
+.tooltip-sub{margin-top:8px;padding-top:7px;border-top:1px solid #2b3643}
+.tooltip-sub-label{font-size:10px;color:#8793a2;margin-bottom:4px}
+.tooltip-chip-list{display:flex;flex-wrap:wrap;gap:5px}
+.tooltip-chip{display:inline-block;padding:3px 6px;border:1px solid #3b4859;border-radius:5px;background:#1a222c;color:#cbd4df;font-size:11px}
+
 .quality-lines{display:flex;flex-direction:column;gap:4px;margin-top:5px}
 .quality-line{font-size:12px;line-height:1.55;color:#e7dcbf}
+.triggered-skill{margin:10px 0;padding:11px;background:#17131d;border:1px solid #57436b;border-radius:9px}
+.triggered-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.triggered-title{font-size:13px;font-weight:800;color:#d8b7f2}
+.triggered-label{font-size:10px;color:#a891bb;border:1px solid #554269;border-radius:999px;padding:2px 6px;white-space:nowrap}
+.triggered-desc{font-size:12px;line-height:1.6;color:#cfd5dc;margin:6px 0 8px}
+.triggered-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+.triggered-meta .tag{background:#211a29;border-color:#4d3a5d}
+.triggered-fixed{margin-top:7px;padding-top:7px;border-top:1px solid #392d44}
+.triggered-fixed-title{font-size:10px;color:#a891bb;font-weight:700;margin-bottom:4px}
+.triggered-level{margin-top:8px;padding-top:7px;border-top:1px dashed #4a3959}
+.triggered-level-title{font-size:10px;color:#c09cdd;font-weight:800;margin-bottom:4px}
+.triggered-quality{margin-top:7px;padding-top:7px;border-top:1px solid #392d44}
+
 
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
 pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
@@ -167,8 +187,10 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
 <script>
 const DATA_BASE='./data/';
 const MANIFEST_PATH=DATA_BASE+'manifest.json';
+const SECONDARY_EFFECTS_PATH=DATA_BASE+'secondary_effects.json?v=20260914-1';
 const PAGE_SIZE=100;
 let M=null, all=[], filtered=[], page=1, selected=-1, listScrollY=0;
+let secondaryEffectsCache=null;
 const tagStates=new Map(); // 0=중립, 1=포함, -1=제외
 const cache=new Map();
 const $=s=>document.querySelector(s);
@@ -275,6 +297,65 @@ function quality20Lines(staticData){
   }
   return out;
 }
+
+const WEAPON_LABELS={
+  'One Hand Sword':'한손검',
+  'Thrusting One Hand Sword':'찌르기 한손검',
+  'Two Hand Sword':'양손검',
+  'One Hand Axe':'한손 도끼',
+  'Two Hand Axe':'양손 도끼',
+  'One Hand Mace':'한손 철퇴',
+  'Two Hand Mace':'양손 철퇴',
+  'Sceptre':'셉터',
+  'Staff':'지팡이',
+  'Warstaff':'전쟁지팡이',
+  'Dagger':'단검',
+  'Rune Dagger':'룬 단검',
+  'Claw':'클로',
+  'Bow':'활',
+  'Wand':'마법봉',
+  'Unarmed':'비무장'
+};
+
+function weaponLabel(v){
+  return WEAPON_LABELS[v]||v;
+}
+
+function gemTooltipHtml(d,a){
+  const sg=d?.support_gem||{};
+  const supportText=(sg.support_text||'').trim();
+  const activeText=(a?.description||'').trim();
+  const text=supportText||activeText;
+
+  const weapons=Array.isArray(a?.weapon_restrictions)
+    ? a.weapon_restrictions.filter(Boolean).map(weaponLabel)
+    : [];
+
+  const extras=[];
+  if(sg.supports_gems_only===true || sg.supports_gems_only==='true'){
+    extras.push({
+      label:'적용 대상',
+      values:['젬으로 획득한 스킬에만 적용']
+    });
+  }
+  if(weapons.length){
+    extras.push({
+      label:'사용 가능 무기',
+      values:weapons
+    });
+  }
+
+  if(!text && !extras.length)return '';
+
+  return `<div class="box tooltip-box">
+    <div class="k">사용 조건 / 툴팁</div>
+    ${text?`<div class="tooltip-text">${esc(text)}</div>`:''}
+    ${extras.map(x=>`<div class="tooltip-sub">
+      <div class="tooltip-sub-label">${esc(x.label)}</div>
+      <div class="tooltip-chip-list">${x.values.map(v=>`<span class="tooltip-chip">${esc(v)}</span>`).join('')}</div>
+    </div>`).join('')}
+  </div>`;
+}
 function quality20Html(staticData){
   const lines=quality20Lines(staticData);
   if(!lines.length)return '';
@@ -355,6 +436,104 @@ function attackDamageText(raw){
 function damageEffectivenessText(raw){
   const n=raw==null?0:Number(raw);
   return `추가 피해 효율: ${formatPct(100+(Number.isFinite(n)?n:0),1)}`;
+}
+
+async function loadSecondaryEffects(){
+  if(secondaryEffectsCache!==null)return secondaryEffectsCache;
+  try{
+    const r=await fetch(SECONDARY_EFFECTS_PATH,{cache:'no-store'});
+    if(!r.ok){
+      secondaryEffectsCache={};
+      return secondaryEffectsCache;
+    }
+    const data=await r.json();
+    secondaryEffectsCache=(data&&data.effects&&typeof data.effects==='object')?data.effects:
+      (data&&typeof data==='object'?data:{});
+    return secondaryEffectsCache;
+  }catch{
+    secondaryEffectsCache={};
+    return secondaryEffectsCache;
+  }
+}
+async function localEffectData(effectId){
+  if(!effectId)return null;
+  const meta=all.find(x=>x.effectId===effectId);
+  if(!meta)return null;
+  try{
+    const doc=await getChunk(meta.chunk);
+    const gem=[...doc.querySelectorAll('gem')].find(x=>x.getAttribute('effectId')===effectId);
+    if(!gem)return null;
+    return obj(gem.querySelector(':scope > repoeGemData'));
+  }catch{
+    return null;
+  }
+}
+async function resolveSecondaryEffect(d){
+  const id=d?.secondary_granted_effect;
+  if(!id)return null;
+
+  // 바알 젬처럼 참조 대상이 실제 젬으로도 존재하면 기존 로컬 분할 XML을 우선 사용.
+  const local=await localEffectData(id);
+  if(local)return {id,data:local,source:'local'};
+
+  // 장작/균열 보조처럼 아이템이 아닌 GrantedEffect는 전용 추출 파일에서 읽음.
+  const effects=await loadSecondaryEffects();
+  const data=effects?.[id];
+  return data?{id,data,source:'secondary'}:null;
+}
+function secondaryEffectName(effect,id){
+  return effect?.display_name || effect?.active_skill?.display_name || id || '발동 스킬';
+}
+function secondaryFixedLines(model){
+  return uniqueTexts([
+    ...(model?.fixedGenerated||[]),
+    ...(model?.fixedStatTexts||[])
+  ]);
+}
+function triggeredLevelHtml(model,lv){
+  if(!model)return '';
+  const basics=uniqueTexts((model.variableGenerated||[]).map(def=>def.text(lv)));
+  const effects=uniqueTexts((model.variableKeys||[]).map(k=>model.resolvedTextByLevel?.[lv]?.[k]));
+  const lines=[...basics,...effects];
+  if(!lines.length)return '';
+  return `<div class="triggered-level">
+    <div class="triggered-level-title">발동 스킬</div>
+    ${lines.map(x=>`<div class="stat-line">${esc(x)}</div>`).join('')}
+  </div>`;
+}
+function triggeredSkillHtml(resolved){
+  if(!resolved?.data)return '';
+  const e=resolved.data;
+  const a=e.active_skill||{},s=e.static||{};
+  const model=buildDisplayStatModel(e);
+  const name=secondaryEffectName(e,resolved.id);
+  const desc=a.description||'';
+  const fixed=secondaryFixedLines(model);
+  const speed=skillSpeedInfo(e,a,s);
+  const cooldown=s.cooldown!=null?formatSeconds(s.cooldown):'-';
+  const q=quality20Lines(s);
+
+  const meta=[];
+  if(speed?.value&&speed.value!=='-')meta.push(`${speed.label}: ${speed.value}`);
+  if(cooldown!=='-')meta.push(`재사용 대기시간: ${cooldown}`);
+  if(s.crit_chance!=null)meta.push(`치명타 확률: ${formatCrit(s.crit_chance)}`);
+
+  return `<div class="triggered-skill">
+    <div class="triggered-head">
+      <div class="triggered-title">${esc(name)}</div>
+      <div class="triggered-label">발동 스킬</div>
+    </div>
+    ${desc?`<div class="triggered-desc">${esc(desc)}</div>`:''}
+    ${meta.length?`<div class="triggered-meta">${meta.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}
+    ${fixed.length?`<div class="triggered-fixed">
+      <div class="triggered-fixed-title">고정 효과</div>
+      ${fixed.map(x=>`<div class="fixed-line">${esc(x)}</div>`).join('')}
+    </div>`:''}
+    ${q.length?`<div class="triggered-quality">
+      <div class="triggered-fixed-title">20% 퀄리티 효과</div>
+      ${q.map(x=>`<div class="quality-line">${esc(x)}</div>`).join('')}
+    </div>`:''}
+  </div>`;
 }
 function buildDisplayStatModel(d){
   const a=d.active_skill||{},s=d.static||{},pl=d.per_level||{};
@@ -647,6 +826,8 @@ async function showGem(i){
    const tags=Array.isArray(d.tags)?d.tags:[];
    const speedInfo=skillSpeedInfo(d,a,s);
    const model=buildDisplayStatModel(d);
+   const secondary=await resolveSecondaryEffect(d);
+   const secondaryModel=secondary?.data?buildDisplayStatModel(secondary.data):null;
 
    const levelRows=model.levels.map(lv=>{
      const r=model.merged[lv]||{};
@@ -659,7 +840,7 @@ async function showGem(i){
 
      return `<tr>
        <td><b>${esc(lv)}</b></td>
-       <td class="stat-cell">${levelStatHtml(model,lv)}</td>
+       <td class="stat-cell">${levelStatHtml(model,lv)}${triggeredLevelHtml(secondaryModel,lv)}</td>
        <td><pre>${esc(costText)}</pre></td>
        <td>${esc(r.required_level??'-')}</td>
        <td>${esc(reqText)}</td>
@@ -672,17 +853,18 @@ async function showGem(i){
    $('#detail').innerHTML=mobileBackHtml()+`
    <h2>${esc(g.name)}</h2>
    ${fixedEffectsHtml(model)}
+   ${triggeredSkillHtml(secondary)}
    <div class="tags">
      <span class="tag">${esc(kindName(g.kind))}</span>
      <span class="tag">${esc(variantName(g.variant))}</span>
      ${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
    </div>
-   ${a.description?`<div class="desc">${esc(a.description)}</div>`:''}
    <div class="kv">
      <div class="box"><div class="k">최대 레벨</div><div class="v">${esc(b.max_level??'-')}</div></div>
      <div class="box"><div class="k">${esc(speedInfo.label)}</div><div class="v">${esc(speedInfo.value)}</div></div>
      <div class="box"><div class="k">치명타 확률</div><div class="v">${esc(formatCrit(s.crit_chance))}</div></div>
      <div class="box"><div class="k">스킬 종류</div><div class="v">${esc(skillType)}</div></div>
+     ${gemTooltipHtml(d,a)}
      ${quality20Html(s)}
    </div>
    <div class="sect">
