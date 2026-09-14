@@ -54,6 +54,10 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 .stat-basic .stat-line{color:#e7d7ad}
 .desc{margin:11px 0;line-height:1.6;font-size:13px}
 .kv{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.box{padding:8px;background:#10151c;border:1px solid #2c3644;border-radius:7px}.box .k{font-size:10px;color:#8793a2}.box .v{font-size:12px;margin-top:2px;word-break:break-word}
+.quality-box{grid-column:1/-1}
+.quality-lines{display:flex;flex-direction:column;gap:4px;margin-top:5px}
+.quality-line{font-size:12px;line-height:1.55;color:#e7dcbf}
+
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
 pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
 .level-priority-table td:nth-child(2) pre{margin:0;line-height:1.55}
@@ -206,6 +210,78 @@ function formatRequirements(req){
   if(req.dex!=null && Number(req.dex)!==0)parts.push(`민첩 ${req.dex}`);
   if(req.int!=null && Number(req.int)!==0)parts.push(`지능 ${req.int}`);
   return parts.length?parts.join(' / '):'-';
+}
+
+const DISPLAY_QUALITY=20;
+
+function cleanNumber(v,maxDecimals=2){
+  const n=Number(v);
+  if(!Number.isFinite(n))return String(v??'-');
+  const p=10**maxDecimals;
+  const x=Math.round((n+Number.EPSILON)*p)/p;
+  return String(Object.is(x,-0)?0:x);
+}
+function qualityTransform(v,op){
+  let n=Number(v);
+  if(!Number.isFinite(n))return v;
+  switch(op){
+    case 'locations_to_metres':
+      n=n/10; break;
+    case 'milliseconds_to_seconds':
+    case 'milliseconds_to_seconds_2dp':
+    case 'milliseconds_to_seconds_2dp_if_required':
+      n=n/1000; break;
+    case 'negate':
+      n=-n; break;
+    case 'divide_by_ten_1dp_if_required':
+      n=n/10; break;
+    case 'per_minute_to_per_second':
+      n=n/60; break;
+    case 'divide_by_one_hundred':
+    case 'divide_by_one_hundred_2dp':
+      n=n/100; break;
+  }
+  const decimals=(
+    op==='milliseconds_to_seconds_2dp' ||
+    op==='milliseconds_to_seconds_2dp_if_required' ||
+    op==='divide_by_one_hundred_2dp'
+  )?2:(op==='divide_by_ten_1dp_if_required'?1:2);
+  return cleanNumber(n,decimals);
+}
+function renderQualityTemplate(template,stats,quality=DISPLAY_QUALITY){
+  if(!template)return '';
+  return String(template).replace(/\{([^{}]+)\}/g,(_,expr)=>{
+    const parts=expr.split('/');
+    const statId=parts.shift();
+    const raw=stats?.[statId];
+    if(raw===null||raw===undefined)return `{${expr}}`;
+    let value=Number(raw)*quality/1000;
+    for(const op of parts)value=qualityTransform(value,op);
+    return cleanNumber(value,2);
+  });
+}
+function quality20Lines(staticData){
+  const qs=Array.isArray(staticData?.quality_stats)?staticData.quality_stats:[];
+  const out=[];
+  for(const q of qs){
+    if(!q||typeof q!=='object'||!q.stat)continue;
+    const text=renderQualityTemplate(q.stat,q.stats||{},DISPLAY_QUALITY)
+      .replace(/\r\n?/g,'\n').trim();
+    if(!text)continue;
+    for(const line of text.split('\n')){
+      const t=line.trim();
+      if(t&&!out.includes(t))out.push(t);
+    }
+  }
+  return out;
+}
+function quality20Html(staticData){
+  const lines=quality20Lines(staticData);
+  if(!lines.length)return '';
+  return `<div class="box quality-box">
+    <div class="k">20% 퀄리티 효과</div>
+    <div class="quality-lines">${lines.map(x=>`<div class="quality-line">${esc(x)}</div>`).join('')}</div>
+  </div>`;
 }
 
 function mergeRepoe(base,over){
@@ -607,6 +683,7 @@ async function showGem(i){
      <div class="box"><div class="k">${esc(speedInfo.label)}</div><div class="v">${esc(speedInfo.value)}</div></div>
      <div class="box"><div class="k">치명타 확률</div><div class="v">${esc(formatCrit(s.crit_chance))}</div></div>
      <div class="box"><div class="k">스킬 종류</div><div class="v">${esc(skillType)}</div></div>
+     ${quality20Html(s)}
    </div>
    <div class="sect">
      <h3>레벨별 데이터</h3>
