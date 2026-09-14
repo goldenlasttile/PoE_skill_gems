@@ -76,6 +76,7 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 .triggered-level{margin-top:8px;padding-top:7px;border-top:1px dashed #4a3959}
 .triggered-level-title{font-size:10px;color:#c09cdd;font-weight:800;margin-bottom:4px}
 .triggered-quality{margin-top:7px;padding-top:7px;border-top:1px solid #392d44}
+.triggered-missing{margin:9px 0;padding:9px 10px;border:1px solid #684849;background:#24191b;border-radius:8px;color:#e7b2b2;font-size:11px;line-height:1.5}
 
 
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
@@ -356,11 +357,11 @@ function gemTooltipHtml(d,a){
     </div>`).join('')}
   </div>`;
 }
-function quality20Html(staticData){
+function quality20Html(staticData,label='20% 퀄리티 효과'){
   const lines=quality20Lines(staticData);
   if(!lines.length)return '';
   return `<div class="box quality-box">
-    <div class="k">20% 퀄리티 효과</div>
+    <div class="k">${esc(label)}</div>
     <div class="quality-lines">${lines.map(x=>`<div class="quality-line">${esc(x)}</div>`).join('')}</div>
   </div>`;
 }
@@ -490,16 +491,66 @@ function secondaryFixedLines(model){
     ...(model?.fixedStatTexts||[])
   ]);
 }
-function triggeredLevelHtml(model,lv){
-  if(!model)return '';
+function generatedAndTextLines(model,lv){
+  if(!model||!lv)return [];
   const basics=uniqueTexts((model.variableGenerated||[]).map(def=>def.text(lv)));
   const effects=uniqueTexts((model.variableKeys||[]).map(k=>model.resolvedTextByLevel?.[lv]?.[k]));
-  const lines=[...basics,...effects];
+  return uniqueTexts([...basics,...effects]);
+}
+function secondaryLevelForPrimary(primaryModel,secondaryModel,primaryLv){
+  if(!secondaryModel?.levels?.length)return null;
+
+  const secondaryLevels=secondaryModel.levels;
+  const primaryReq=Number(primaryModel?.merged?.[primaryLv]?.required_level);
+
+  // 1) Required-level match is the most reliable relation for hybrid support gems.
+  if(Number.isFinite(primaryReq)){
+    const exact=secondaryLevels.find(sl=>
+      Number(secondaryModel?.merged?.[sl]?.required_level)===primaryReq
+    );
+    if(exact)return exact;
+  }
+
+  // 2) Usually both GrantedEffects use the same level key.
+  if(secondaryLevels.includes(String(primaryLv)))return String(primaryLv);
+
+  // 3) Fall back to ordinal mapping.
+  const pIndex=(primaryModel?.levels||[]).indexOf(String(primaryLv));
+  if(pIndex>=0 && secondaryLevels[pIndex]!=null)return secondaryLevels[pIndex];
+
+  // 4) Last resort: nearest required level.
+  if(Number.isFinite(primaryReq)){
+    let best=null,bestDiff=Infinity;
+    for(const sl of secondaryLevels){
+      const req=Number(secondaryModel?.merged?.[sl]?.required_level);
+      if(!Number.isFinite(req))continue;
+      const diff=Math.abs(req-primaryReq);
+      if(diff<bestDiff){best=sl;bestDiff=diff}
+    }
+    if(best!=null)return best;
+  }
+  return secondaryLevels[0]||null;
+}
+function triggeredLevelHtml(primaryModel,secondaryModel,primaryLv,secondaryName='발동 스킬'){
+  if(!secondaryModel)return '';
+  const secondaryLv=secondaryLevelForPrimary(primaryModel,secondaryModel,String(primaryLv));
+  if(!secondaryLv)return '';
+
+  const lines=generatedAndTextLines(secondaryModel,secondaryLv);
+
+  // Some secondary skills have only values that buildDisplayStatModel classified
+  // as fixed. Those are already shown in the triggered-skill card, so don't
+  // duplicate them in every row.
   if(!lines.length)return '';
+
   return `<div class="triggered-level">
-    <div class="triggered-level-title">발동 스킬</div>
+    <div class="triggered-level-title">${esc(secondaryName)} · Lv ${esc(primaryLv)}</div>
     ${lines.map(x=>`<div class="stat-line">${esc(x)}</div>`).join('')}
   </div>`;
+}
+function missingTriggeredSkillHtml(d){
+  if(!d?.secondary_granted_effect)return '';
+  return `<div class="triggered-missing">발동 스킬 데이터(${esc(d.secondary_granted_effect)})를 불러오지 못했습니다. secondary_effects.json이 최신인지 확인하세요.</div>`;
 }
 function triggeredSkillHtml(resolved){
   if(!resolved?.data)return '';
@@ -510,6 +561,9 @@ function triggeredSkillHtml(resolved){
   const desc=a.description||'';
   const fixed=secondaryFixedLines(model);
   const speed=skillSpeedInfo(e,a,s);
+  const levelRange=(model.levels&&model.levels.length)
+    ? `${model.levels[0]}–${model.levels[model.levels.length-1]}`
+    : '';
   const cooldown=s.cooldown!=null?formatSeconds(s.cooldown):'-';
   const q=quality20Lines(s);
 
@@ -521,7 +575,7 @@ function triggeredSkillHtml(resolved){
   return `<div class="triggered-skill">
     <div class="triggered-head">
       <div class="triggered-title">${esc(name)}</div>
-      <div class="triggered-label">발동 스킬</div>
+      <div class="triggered-label">발동 스킬${levelRange?` · Lv ${esc(levelRange)}`:''}</div>
     </div>
     ${desc?`<div class="triggered-desc">${esc(desc)}</div>`:''}
     ${meta.length?`<div class="triggered-meta">${meta.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}
@@ -530,7 +584,7 @@ function triggeredSkillHtml(resolved){
       ${fixed.map(x=>`<div class="fixed-line">${esc(x)}</div>`).join('')}
     </div>`:''}
     ${q.length?`<div class="triggered-quality">
-      <div class="triggered-fixed-title">20% 퀄리티 효과</div>
+      <div class="triggered-fixed-title">20% 퀄리티 효과 · 발동 스킬</div>
       ${q.map(x=>`<div class="quality-line">${esc(x)}</div>`).join('')}
     </div>`:''}
   </div>`;
@@ -578,16 +632,26 @@ function buildDisplayStatModel(d){
   const merged={};
   for(const lv of levels)merged[lv]=mergeRepoe(s,pl[lv]||{});
 
+  // Triggered/secondary GrantedEffects do not always carry enough type metadata
+  // for a reliable "Attack" check. If the actual data contains damage_multiplier,
+  // it is an attack-damage progression and must be rendered.
+  const hasDamageMultiplier =
+    s.damage_multiplier!=null ||
+    levels.some(lv=>pl[lv]?.damage_multiplier!=null);
+
+  const hasDamageEffectiveness =
+    isAttack ||
+    hasDamageMultiplier ||
+    s.damage_effectiveness!=null ||
+    levels.some(lv=>pl[lv]?.damage_effectiveness!=null);
+
   const generatedDefs=[];
-  if(isAttack){
+  if(isAttack || hasDamageMultiplier){
     generatedDefs.push({
       id:'attack_damage',
       text:lv=>attackDamageText(merged[lv]?.damage_multiplier)
     });
   }
-  const hasDamageEffectiveness=isAttack ||
-    s.damage_effectiveness!=null ||
-    levels.some(lv=>pl[lv]?.damage_effectiveness!=null);
   if(hasDamageEffectiveness){
     generatedDefs.push({
       id:'damage_effectiveness',
@@ -828,6 +892,7 @@ async function showGem(i){
    const model=buildDisplayStatModel(d);
    const secondary=await resolveSecondaryEffect(d);
    const secondaryModel=secondary?.data?buildDisplayStatModel(secondary.data):null;
+   const secondaryName=secondary?.data?secondaryEffectName(secondary.data,secondary.id):'발동 스킬';
 
    const levelRows=model.levels.map(lv=>{
      const r=model.merged[lv]||{};
@@ -840,7 +905,7 @@ async function showGem(i){
 
      return `<tr>
        <td><b>${esc(lv)}</b></td>
-       <td class="stat-cell">${levelStatHtml(model,lv)}${triggeredLevelHtml(secondaryModel,lv)}</td>
+       <td class="stat-cell">${levelStatHtml(model,lv)}${triggeredLevelHtml(model,secondaryModel,lv,secondaryName)}</td>
        <td><pre>${esc(costText)}</pre></td>
        <td>${esc(r.required_level??'-')}</td>
        <td>${esc(reqText)}</td>
@@ -853,7 +918,7 @@ async function showGem(i){
    $('#detail').innerHTML=mobileBackHtml()+`
    <h2>${esc(g.name)}</h2>
    ${fixedEffectsHtml(model)}
-   ${triggeredSkillHtml(secondary)}
+   ${secondary?triggeredSkillHtml(secondary):missingTriggeredSkillHtml(d)}
    <div class="tags">
      <span class="tag">${esc(kindName(g.kind))}</span>
      <span class="tag">${esc(variantName(g.variant))}</span>
@@ -865,7 +930,7 @@ async function showGem(i){
      <div class="box"><div class="k">치명타 확률</div><div class="v">${esc(formatCrit(s.crit_chance))}</div></div>
      <div class="box"><div class="k">스킬 종류</div><div class="v">${esc(skillType)}</div></div>
      ${gemTooltipHtml(d,a)}
-     ${quality20Html(s)}
+     ${quality20Html(s,d.is_support?'20% 퀄리티 효과 · 보조 대상 스킬':'20% 퀄리티 효과')}
    </div>
    <div class="sect">
      <h3>레벨별 데이터</h3>
