@@ -98,6 +98,10 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 
 pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
 .level-priority-table td:nth-child(2) pre{margin:0;line-height:1.55}
+.level-toggle-btn{margin-left:6px;padding:2px 6px;border:1px solid #465466;border-radius:5px;background:#202733;color:#cfd8e3;font-size:10px;line-height:1.3;vertical-align:middle;cursor:pointer}
+.level-toggle-btn:hover{background:#293444}
+.level-row-collapsed{display:none}
+
 .level-priority-table td:nth-child(3) pre{margin:0}
 .pager{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between}.pager button{background:#202733;color:var(--tx);border:1px solid #394555;border-radius:6px;padding:5px 9px}
 
@@ -547,6 +551,27 @@ function secondaryLevelForPrimary(primaryModel,secondaryModel,primaryLv){
   }
   return secondaryLevels[0]||null;
 }
+
+function levelCollapseInfo(model,maxLevelRaw){
+  const maxLevel=Number(maxLevelRaw);
+  if(!Number.isFinite(maxLevel))return {maxLevel:null,collapsible:false};
+  const nums=(model?.levels||[]).map(x=>Number(x)).filter(Number.isFinite);
+  return {maxLevel,collapsible:nums.some(n=>n>1&&n<maxLevel)};
+}
+function setLevelRowsCollapsed(collapsed,maxLevel){
+  document.querySelectorAll('#detail .level-data-row').forEach(row=>{
+    const lv=Number(row.dataset.level);
+    row.classList.toggle(
+      'level-row-collapsed',
+      collapsed && Number.isFinite(lv) && lv>1 && lv<maxLevel
+    );
+  });
+  const btn=document.querySelector('#detail .level-toggle-btn');
+  if(btn){
+    btn.textContent=collapsed?'펼치기':'접기';
+    btn.setAttribute('aria-expanded',collapsed?'false':'true');
+  }
+}
 function triggeredLevelHtml(primaryModel,secondaryModel,primaryLv,secondaryName='발동 스킬'){
   if(!secondaryModel)return '';
   const secondaryLv=secondaryLevelForPrimary(primaryModel,secondaryModel,String(primaryLv));
@@ -956,6 +981,7 @@ async function showGem(i){
    const secondary=await resolveSecondaryEffect(d);
    const secondaryModel=secondary?.data?buildDisplayStatModel(secondary.data):null;
    const secondaryName=secondary?.data?secondaryEffectName(secondary.data,secondary.id):'발동 스킬';
+   const collapseInfo=levelCollapseInfo(model,b.max_level);
 
    const levelRows=model.levels.map(lv=>{
      const r=model.merged[lv]||{};
@@ -966,8 +992,11 @@ async function showGem(i){
        .map(([k,v])=>`${k}: ${v}`)
        .join('\n')||'-';
 
-     return `<tr>
-       <td><b>${esc(lv)}</b></td>
+     const toggle=(collapseInfo.collapsible && Number(lv)===1)
+       ? `<button type="button" class="level-toggle-btn" aria-expanded="true">접기</button>`
+       : '';
+     return `<tr class="level-data-row" data-level="${esc(lv)}">
+       <td><b>${esc(lv)}</b>${toggle}</td>
        <td class="stat-cell">${levelStatHtml(model,lv)}${triggeredLevelHtml(model,secondaryModel,lv,secondaryName)}</td>
        <td><pre>${esc(costText)}</pre></td>
        <td>${esc(r.required_level??'-')}</td>
@@ -1001,6 +1030,15 @@ async function showGem(i){
      </div>
    </div>
    <div class="sect"><h3>원본 RePoE 데이터</h3><pre>${esc(JSON.stringify(d,null,2))}</pre></div>`;
+
+   const levelToggle=document.querySelector('#detail .level-toggle-btn');
+   if(levelToggle && collapseInfo.maxLevel!=null){
+     let collapsed=false;
+     levelToggle.addEventListener('click',()=>{
+       collapsed=!collapsed;
+       setLevelRowsCollapsed(collapsed,collapseInfo.maxLevel);
+     });
+   }
  }catch(e){
    $('#detail').innerHTML=mobileBackHtml()+`<span class="err">${esc(e.message)}</span>`;
  }
