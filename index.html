@@ -79,7 +79,23 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 .triggered-missing{margin:9px 0;padding:9px 10px;border:1px solid #684849;background:#24191b;border-radius:8px;color:#e7b2b2;font-size:11px;line-height:1.5}
 
 
-.tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0}
+.tag{padding:3px 6px;border-radius:5px;background:#1c2530;border:1px solid #344252;font-size:11px}
+.gem-tags-wrap{margin:9px 0}
+.gem-tags-label{font-size:10px;color:#8793a2;margin-bottom:5px}
+.gem-public-tags{display:flex;flex-wrap:wrap;gap:5px}
+.gem-public-tag{padding:4px 7px;border-radius:6px;background:#1c2530;border:1px solid #3a495a;font-size:11px;color:#d5dde7}
+.gem-public-tag.tag-fire{color:#ff9b78;border-color:#714839}
+.gem-public-tag.tag-cold{color:#83d4f4;border-color:#386174}
+.gem-public-tag.tag-lightning{color:#ffda72;border-color:#6e6038}
+.gem-public-tag.tag-physical{color:#ebb1a8;border-color:#6a4945}
+.gem-public-tag.tag-chaos{color:#d49be9;border-color:#624670}
+.gem-public-tag.tag-support{color:#d4dae1}
+.gem-internal-tags{margin-top:7px}
+.gem-internal-tags summary{cursor:pointer;color:#738091;font-size:10px;user-select:none}
+.gem-internal-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.gem-internal-tag{padding:3px 6px;border-radius:5px;border:1px dashed #3a4552;color:#7e8996;background:#151b22;font:10px ui-monospace,SFMono-Regular,Consolas,monospace}
+
 pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
 .level-priority-table td:nth-child(2) pre{margin:0;line-height:1.55}
 .level-priority-table td:nth-child(3) pre{margin:0}
@@ -801,6 +817,53 @@ function renderTagFilters(){
     renderTagFilters();apply(true);
   });
 }
+
+function splitGemTags(rawTags){
+  const labels=M?.tagLabels||{};
+  const raw=Array.isArray(rawTags)?rawTags.filter(Boolean):[];
+  const publicTags=[];
+  const internalTags=[];
+  const seenPublic=new Set(),seenInternal=new Set();
+
+  for(const key of raw){
+    const label=labels[key];
+    if(typeof label==='string' && label.trim()){
+      if(!seenPublic.has(label)){
+        seenPublic.add(label);
+        publicTags.push({key,label:label.trim()});
+      }
+    }else if(!seenInternal.has(key)){
+      seenInternal.add(key);
+      internalTags.push(key);
+    }
+  }
+  return {publicTags,internalTags};
+}
+function publicTagClass(key){
+  return ({
+    fire:'tag-fire',cold:'tag-cold',lightning:'tag-lightning',
+    physical:'tag-physical',chaos:'tag-chaos',support:'tag-support'
+  })[key]||'';
+}
+function gemTagsHtml(rawTags){
+  const {publicTags,internalTags}=splitGemTags(rawTags);
+  if(!publicTags.length && !internalTags.length)return '';
+
+  return `<div class="gem-tags-wrap">
+    ${publicTags.length?`
+      <div class="gem-tags-label">태그</div>
+      <div class="gem-public-tags">
+        ${publicTags.map(t=>`<span class="gem-public-tag ${publicTagClass(t.key)}" title="${esc(t.key)}">${esc(t.label)}</span>`).join('')}
+      </div>`:''}
+    ${internalTags.length?`
+      <details class="gem-internal-tags">
+        <summary>내부 태그 ${internalTags.length}개</summary>
+        <div class="gem-internal-list">
+          ${internalTags.map(t=>`<span class="gem-internal-tag">${esc(t)}</span>`).join('')}
+        </div>
+      </details>`:''}
+  </div>`;
+}
 function tagPass(g){
   const tags=new Set(Array.isArray(g.tags)?g.tags:[]);
   for(const [k,v] of tagStates){
@@ -919,11 +982,7 @@ async function showGem(i){
    <h2>${esc(g.name)}</h2>
    ${fixedEffectsHtml(model)}
    ${secondary?triggeredSkillHtml(secondary):missingTriggeredSkillHtml(d)}
-   <div class="tags">
-     <span class="tag">${esc(kindName(g.kind))}</span>
-     <span class="tag">${esc(variantName(g.variant))}</span>
-     ${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
-   </div>
+   ${gemTagsHtml(tags)}
    <div class="kv">
      <div class="box"><div class="k">최대 레벨</div><div class="v">${esc(b.max_level??'-')}</div></div>
      <div class="box"><div class="k">${esc(speedInfo.label)}</div><div class="v">${esc(speedInfo.value)}</div></div>
