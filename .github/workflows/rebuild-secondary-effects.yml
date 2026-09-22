@@ -1,0 +1,39 @@
+name: Rebuild secondary effects
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "data/gems_*.xml"
+      - "data/manifest.json"
+      - "scripts/update_secondary_effects.py"
+      - ".github/workflows/rebuild-secondary-effects.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild all non-item secondary effects
+        run: python scripts/update_secondary_effects.py
+
+      - name: Commit generated data
+        shell: bash
+        run: |
+          if git diff --quiet -- data/secondary_effects.json; then
+            echo "No secondary data changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/secondary_effects.json
+          git commit -m "Rebuild secondary effects"
+          git push
