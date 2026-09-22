@@ -95,18 +95,19 @@ td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:
 .gem-internal-tags summary{cursor:pointer;color:#738091;font-size:10px;user-select:none}
 .gem-internal-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .gem-internal-tag{padding:3px 6px;border-radius:5px;border:1px dashed #3a4552;color:#7e8996;background:#151b22;font:10px ui-monospace,SFMono-Regular,Consolas,monospace}
-.weapon-disclosure{margin:5px 0 10px}
-.weapon-toggle{appearance:none;border:0;background:transparent;color:#aeb9c6;padding:2px 0;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
-.weapon-toggle:hover{color:#e0e6ed}
-.weapon-toggle:focus-visible{outline:1px solid #64758a;outline-offset:3px;border-radius:3px}
-.weapon-toggle-arrow{display:inline-block;font-size:9px;color:#768598;transition:transform .2s ease}
-.weapon-toggle[aria-expanded="true"] .weapon-toggle-arrow{transform:rotate(90deg)}
-.weapon-slide{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .22s ease,opacity .18s ease}
-.weapon-slide.open{grid-template-rows:1fr;opacity:1}
-.weapon-slide-inner{overflow:hidden}
-.weapon-chip-list{display:flex;flex-wrap:wrap;gap:5px;padding-top:6px}
-.weapon-chip{display:inline-block;padding:4px 7px;border-radius:6px;background:#191f27;border:1px solid #394755;color:#cbd4de;font-size:11px}
-.weapon-chip.unarmed{border-style:dashed}
+.weapon-tags-wrap{margin-top:5px}
+.weapon-filter-wrap{padding:0;overflow:hidden}
+.weapon-filter-toggle{appearance:none;width:100%;border:0;background:transparent;color:inherit;padding:9px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left}
+.weapon-filter-toggle:hover{background:#151c25}
+.weapon-filter-toggle:focus-visible{outline:1px solid #64758a;outline-offset:-2px}
+.weapon-filter-meta{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:10px}
+.weapon-filter-arrow{display:inline-block;transition:transform .2s ease}
+.weapon-filter-toggle[aria-expanded="true"] .weapon-filter-arrow{transform:rotate(90deg)}
+.weapon-filter-body{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .22s ease,opacity .18s ease}
+.weapon-filter-body.open{grid-template-rows:1fr;opacity:1}
+.weapon-filter-inner{overflow:hidden}
+.weapon-filter-content{padding:0 9px 9px}
+.weapon-filter-help{margin-bottom:7px;text-align:right}
 
 
 pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace}.sect{margin-top:12px}.sect h3{font-size:12px;color:var(--gold);margin:0 0 6px}
@@ -201,6 +202,25 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
     </div>
     <div class="tag-filter-list" id="tagFilterList"></div>
   </div>
+
+  <div class="tag-filter-wrap weapon-filter-wrap" id="weaponFilterWrap">
+    <button class="weapon-filter-toggle" id="weaponFilterToggle" type="button" aria-expanded="false">
+      <span class="small">무기</span>
+      <span class="weapon-filter-meta">
+        <span id="weaponFilterSummary">탭하여 펼치기</span>
+        <span class="weapon-filter-arrow">▶</span>
+      </span>
+    </button>
+    <div class="weapon-filter-body" id="weaponFilterBody" aria-hidden="true">
+      <div class="weapon-filter-inner">
+        <div class="weapon-filter-content">
+          <div class="tag-filter-help weapon-filter-help">1회 포함 · 2회 제외 · 3회 해제</div>
+          <div class="tag-filter-list" id="weaponFilterList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="filters">
     <input id="q" placeholder="젬 이름 / effectId / itemId 검색">
     <select id="kind"><option value="">종류 전체</option><option value="active">액티브</option><option value="support">보조</option></select>
@@ -228,6 +248,8 @@ const PAGE_SIZE=100;
 let M=null, all=[], filtered=[], page=1, selected=-1, listScrollY=0;
 let secondaryEffectsCache=null;
 const tagStates=new Map(); // 0=중립, 1=포함, -1=제외
+const weaponStates=new Map(); // 0=중립, 1=포함, -1=제외
+let weaponFilterOpen=false;
 const cache=new Map();
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -360,25 +382,21 @@ function weaponLabel(v){
 }
 
 
-function weaponRestrictionsHtml(a){
+function weaponRestrictionsHtml(a,rawTags=[]){
   const raw=Array.isArray(a?.weapon_restrictions)
-    ? [...new Set(a.weapon_restrictions.filter(Boolean))]
+    ? [...a.weapon_restrictions.filter(Boolean)]
     : [];
-  if(!raw.length)return '';
 
-  const chips=raw.map(w=>{
-    const cls=w==='Unarmed'?' unarmed':'';
-    return `<span class="weapon-chip${cls}" title="${esc(w)}">${esc(weaponLabel(w))}</span>`;
-  }).join('');
+  // "bow" was previously a public skill tag. Treat it as a weapon instead.
+  if(Array.isArray(rawTags)&&rawTags.includes('bow'))raw.push('Bow');
 
-  return `<div class="weapon-disclosure">
-    <button type="button" class="weapon-toggle" aria-expanded="false">
-      <span>[무기]</span><span class="weapon-toggle-arrow">▶</span>
-    </button>
-    <div class="weapon-slide" aria-hidden="true">
-      <div class="weapon-slide-inner">
-        <div class="weapon-chip-list">${chips}</div>
-      </div>
+  const weapons=[...new Set(raw)];
+  if(!weapons.length)return '';
+
+  return `<div class="gem-tags-wrap weapon-tags-wrap">
+    <div class="gem-tags-label">무기</div>
+    <div class="gem-public-tags">
+      ${weapons.map(w=>`<span class="gem-public-tag" title="${esc(w)}">${esc(weaponLabel(w))}</span>`).join('')}
     </div>
   </div>`;
 }
@@ -813,12 +831,20 @@ window.addEventListener('popstate',()=>{
 window.addEventListener('resize',()=>{
   if(!isMobile()) document.body.classList.remove('mobile-detail');
 });
+const weaponFilterToggleEl=$('#weaponFilterToggle');
+if(weaponFilterToggleEl){
+  weaponFilterToggleEl.addEventListener('click',()=>{
+    weaponFilterOpen=!weaponFilterOpen;
+    updateWeaponFilterDisclosure();
+    saveFilterState();
+  });
+}
 function setStatus(t,e=false){$('#status').textContent=t;$('#status').classList.toggle('err',e)}
 function scalar(type,text){if(type==='null')return null;if(type==='boolean')return text==='true';if(type==='integer')return parseInt(text,10);if(type==='number')return Number(text);return text}
 function nodeVal(el){const t=el.getAttribute('type');if(el.tagName==='property')return scalar(t,el.textContent||'');if(el.tagName==='item'){if(t==='object')return obj(el);if(t==='array')return [...el.children].map(nodeVal);return scalar(t,el.textContent||'')}if(el.tagName==='object')return obj(el);if(el.tagName==='array')return [...el.children].filter(x=>x.tagName==='item').map(nodeVal);return obj(el)}
 function obj(el){const o={};if(!el)return o;for(const c of el.children){const n=c.getAttribute('name');if(n!==null)o[n]=nodeVal(c)}return o}
 
-const FILTER_STORAGE_KEY='poe1-gem-viewer-filter-v2';
+const FILTER_STORAGE_KEY='poe1-gem-viewer-filter-v3';
 const tagAccentClass=k=>({
   fire:'tag-fire',cold:'tag-cold',lightning:'tag-lightning',physical:'tag-physical',
   chaos:'tag-chaos',attack:'tag-attack',spell:'tag-spell',minion:'tag-minion',critical:'tag-critical'
@@ -827,10 +853,13 @@ const tagAccentClass=k=>({
 function saveFilterState(){
   try{
     const states={};
+    const weaponStateObj={};
     for(const [k,v] of tagStates)if(v)states[k]=v;
+    for(const [k,v] of weaponStates)if(v)weaponStateObj[k]=v;
     sessionStorage.setItem(FILTER_STORAGE_KEY,JSON.stringify({
       q:$('#q')?.value||'',kind:$('#kind')?.value||'',variant:$('#variant')?.value||'',
-      color:$('#color')?.value||'',tags:states,page,listScrollY
+      color:$('#color')?.value||'',tags:states,weapons:weaponStateObj,
+      weaponFilterOpen,page,listScrollY
     }));
   }catch{}
 }
@@ -843,7 +872,18 @@ function restoreFilterState(){
     if($('#variant'))$('#variant').value=x.variant||'';
     if($('#color'))$('#color').value=x.color||'';
     tagStates.clear();
-    for(const [k,v] of Object.entries(x.tags||{}))if(v===1||v===-1)tagStates.set(k,v);
+    weaponStates.clear();
+
+    // Migrate the old skill-tag "bow" state to the new Bow weapon filter.
+    for(const [k,v] of Object.entries(x.tags||{})){
+      if(v!==1&&v!==-1)continue;
+      if(k==='bow')weaponStates.set('Bow',v);
+      else tagStates.set(k,v);
+    }
+    for(const [k,v] of Object.entries(x.weapons||{}))
+      if(v===1||v===-1)weaponStates.set(k,v);
+
+    weaponFilterOpen=Boolean(x.weaponFilterOpen)||weaponStates.size>0;
     if(Number.isFinite(Number(x.page)))page=Math.max(1,Number(x.page));
     if(Number.isFinite(Number(x.listScrollY)))listScrollY=Number(x.listScrollY);
   }catch{}
@@ -851,7 +891,8 @@ function restoreFilterState(){
 function renderTagFilters(){
   const box=$('#tagFilterList');if(!box||!M)return;
   const labels=M.tagLabels||{};
-  const order=(Array.isArray(M.tagOrder)&&M.tagOrder.length)?M.tagOrder:Object.keys(labels);
+  const order=((Array.isArray(M.tagOrder)&&M.tagOrder.length)?M.tagOrder:Object.keys(labels))
+    .filter(k=>k!=='bow');
   if(!order.length){
     box.innerHTML='<span class="err">manifest.json에 태그 정보가 없습니다.</span>';
     return;
@@ -874,6 +915,63 @@ function renderTagFilters(){
   });
 }
 
+
+function updateWeaponFilterDisclosure(){
+  const toggle=$('#weaponFilterToggle');
+  const body=$('#weaponFilterBody');
+  const summary=$('#weaponFilterSummary');
+  if(!toggle||!body)return;
+
+  toggle.setAttribute('aria-expanded',weaponFilterOpen?'true':'false');
+  body.classList.toggle('open',weaponFilterOpen);
+  body.setAttribute('aria-hidden',weaponFilterOpen?'false':'true');
+
+  if(summary){
+    const selected=[...weaponStates.values()].filter(v=>v===1||v===-1).length;
+    summary.textContent=selected?`선택 ${selected}개`:(weaponFilterOpen?'탭하여 접기':'탭하여 펼치기');
+  }
+}
+function renderWeaponFilters(){
+  const box=$('#weaponFilterList');
+  if(!box||!M)return;
+
+  const labels=M.weaponLabels||WEAPON_LABELS;
+  const order=(Array.isArray(M.weaponOrder)&&M.weaponOrder.length)
+    ? M.weaponOrder
+    : Object.keys(labels);
+
+  box.innerHTML=`<button class="tag-filter-btn tag-reset" type="button" data-weapon-reset="1">Reset</button>`+
+    order.map(k=>{
+      const st=weaponStates.get(k)||0;
+      const cnt=all.reduce((n,g)=>n+(Array.isArray(g.weapons)&&g.weapons.includes(k)?1:0),0);
+      return `<button type="button" class="tag-filter-btn ${st===1?'is-on':st===-1?'is-off':''}" data-weapon="${esc(k)}" data-state="${st}" title="${st===1?'포함':st===-1?'제외':'선택 안 함'} · ${cnt}개">${esc(labels[k]||weaponLabel(k))} <small>${cnt}</small></button>`;
+    }).join('');
+
+  box.querySelector('[data-weapon-reset="1"]').onclick=()=>{
+    weaponStates.clear();
+    renderWeaponFilters();
+    apply(true);
+  };
+
+  box.querySelectorAll('[data-weapon]').forEach(btn=>btn.onclick=()=>{
+    const k=btn.dataset.weapon;
+    const now=weaponStates.get(k)||0;
+    const next=now===0?1:now===1?-1:0;
+    if(next===0)weaponStates.delete(k);else weaponStates.set(k,next);
+    renderWeaponFilters();
+    apply(true);
+  });
+
+  updateWeaponFilterDisclosure();
+}
+function weaponPass(g){
+  const weapons=new Set(Array.isArray(g.weapons)?g.weapons:[]);
+  for(const [k,v] of weaponStates){
+    if(v===1&&!weapons.has(k))return false;
+    if(v===-1&&weapons.has(k))return false;
+  }
+  return true;
+}
 function splitGemTags(rawTags){
   const labels=M?.tagLabels||{};
   const raw=Array.isArray(rawTags)?rawTags.filter(Boolean):[];
@@ -882,6 +980,7 @@ function splitGemTags(rawTags){
   const seenPublic=new Set(),seenInternal=new Set();
 
   for(const key of raw){
+    if(key==='bow')continue;
     const label=labels[key];
     if(typeof label==='string' && label.trim()){
       if(!seenPublic.has(label)){
@@ -930,7 +1029,7 @@ function tagPass(g){
 }
 async function loadManifest(){
  try{
-   const r=await fetch(MANIFEST_PATH+'?v=20260922-weapon1',{cache:'no-store'});
+   const r=await fetch(MANIFEST_PATH+'?v=20260922-weaponfilter2',{cache:'no-store'});
    if(!r.ok)throw new Error('manifest HTTP '+r.status);
 
    M=await r.json();
@@ -942,10 +1041,16 @@ async function loadManifest(){
      throw new Error('manifest.json의 tagOrder 데이터가 없습니다.');
 
    all=M.gems
-   .filter(x=>!String(x.effectId||'').includes('Royale')&&!String(x.itemId||'').includes('Royale'))
+   .filter(x=>
+     !String(x.effectId||'').includes('Royale') &&
+     !String(x.itemId||'').includes('Royale') &&
+     !String(x.activeSkillId||'').startsWith('graft_skill') &&
+     !/GraftGem/i.test(String(x.itemId||''))
+   )
    .map((x,i)=>({
      ...x,
      tags:Array.isArray(x.tags)?x.tags:[],
+     weapons:Array.isArray(x.weapons)?x.weapons:[],
      _i:i
    }));
    filtered=[...all];
@@ -965,7 +1070,9 @@ async function loadManifest(){
 
    restoreFilterState();
    renderTagFilters();
-   setStatus(`${all.length.toLocaleString()}개 젬 · 태그 ${M.tagOrder.length}개`);
+   renderWeaponFilters();
+   updateWeaponFilterDisclosure();
+   setStatus(`${all.length.toLocaleString()}개 젬 · 태그 ${(M.tagOrder||[]).filter(x=>x!=='bow').length}개 · 무기 ${(M.weaponOrder||[]).length}종`);
    apply(false,true);
  }catch(e){
    setStatus('manifest 로드 실패: '+e.message,true);
@@ -975,7 +1082,14 @@ async function loadManifest(){
 }
 function apply(resetPage=true,restoreScroll=false){
  const q=$('#q').value.trim().toLowerCase(),k=$('#kind').value,v=$('#variant').value,c=$('#color').value;
- filtered=all.filter(g=>(!k||g.kind===k)&&(!v||g.variant===v)&&(!c||g.color===c)&&tagPass(g)&&(!q||`${g.name}\n${g.effectId}\n${g.itemId}`.toLowerCase().includes(q)));
+ filtered=all.filter(g=>
+   (!k||g.kind===k)&&
+   (!v||g.variant===v)&&
+   (!c||g.color===c)&&
+   tagPass(g)&&
+   weaponPass(g)&&
+   (!q||`${g.name}\n${g.effectId}\n${g.itemId}`.toLowerCase().includes(q))
+ );
  if(resetPage)page=1;
  render();
  saveFilterState();
@@ -1045,7 +1159,7 @@ async function showGem(i){
    ${fixedEffectsHtml(model)}
    ${secondary?triggeredSkillHtml(secondary):missingTriggeredSkillHtml(d)}
    ${gemTagsHtml(tags)}
-   ${weaponRestrictionsHtml(a)}
+   ${weaponRestrictionsHtml(a,tags)}
    <div class="kv">
      <div class="box"><div class="k">최대 레벨</div><div class="v">${esc(b.max_level??'-')}</div></div>
      <div class="box"><div class="k">${esc(speedInfo.label)}</div><div class="v">${esc(speedInfo.value)}</div></div>
@@ -1081,18 +1195,6 @@ async function showGem(i){
      });
    }
 
-   const weaponToggle=document.querySelector('#detail .weapon-toggle');
-   if(weaponToggle){
-     const slide=weaponToggle.parentElement?.querySelector('.weapon-slide');
-     weaponToggle.addEventListener('click',()=>{
-       const open=weaponToggle.getAttribute('aria-expanded')!=='true';
-       weaponToggle.setAttribute('aria-expanded',open?'true':'false');
-       if(slide){
-         slide.classList.toggle('open',open);
-         slide.setAttribute('aria-hidden',open?'false':'true');
-       }
-     });
-   }
  }catch(e){
    $('#detail').innerHTML=mobileBackHtml()+`<span class="err">${esc(e.message)}</span>`;
  }
