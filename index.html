@@ -24,8 +24,6 @@ h1{font-size:20px;margin:0;color:#f0e2bf}.small{font-size:12px;color:var(--mut)}
 .tag-filter-btn:hover{filter:brightness(1.12)}
 .tag-filter-btn.is-on{border-color:#74c98b;background:#244f39;box-shadow:inset 0 0 0 1px #74c98b55}
 .tag-filter-btn.is-off{border-color:#d86b6b;background:#4b292d;color:#ffb1b1;text-decoration:line-through}
-.tag-filter-btn.is-on::before{content:'✓ ';font-weight:800}
-.tag-filter-btn.is-off::before{content:'× ';font-weight:900}
 .tag-reset{border-color:#46505d;background:#171d25;color:#9ba6b4}
 .tag-filter-btn.tag-fire{color:#ff875f}.tag-filter-btn.tag-cold{color:#73c9ef}.tag-filter-btn.tag-lightning{color:#ffd15c}
 .tag-filter-btn.tag-physical{color:#e9a095}.tag-filter-btn.tag-chaos{color:#cf8ee8}.tag-filter-btn.tag-attack{color:#ff9854}
@@ -41,7 +39,15 @@ input,select{background:#11161d;border:1px solid #354153;color:var(--tx);border-
 .main{display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{border:1px solid var(--line);background:var(--p);border-radius:9px;overflow:hidden}
 .ph{padding:11px 12px;border-bottom:1px solid var(--line);font-weight:700}.tw{max-height:calc(100vh - 230px);overflow:auto;min-height:520px}
 table{width:100%;border-collapse:collapse;font-size:12px}th{position:sticky;top:0;background:#1b222c;color:#abb7c5;text-align:left;padding:8px}
-td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}tbody tr:hover{background:#202834}tbody tr.sel{background:#2a2618}
+td{padding:8px;border-bottom:1px solid #242d39}tbody tr{cursor:pointer}
+.compare-th{min-width:126px}
+.compare-head{display:flex;align-items:center;gap:3px}
+.compare-head select{min-width:0;width:102px;padding:4px 3px;font-size:10px;background:#151c24}
+.compare-sort{width:22px;height:25px;padding:0;border:1px solid #3b4655;border-radius:5px;background:#171e27;color:#aeb9c6;cursor:pointer;font-size:11px}
+.compare-sort.active{border-color:#d2b765;color:#f0d997}
+.compare-value{display:inline-block;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums;color:#d8e0e9}
+.compare-empty{color:#5f6b78}
+tbody tr:hover{background:#202834}tbody tr.sel{background:#2a2618}
 .badge{display:inline-block;padding:2px 6px;border:1px solid #3b4655;border-radius:999px;font-size:10px}.orb{display:inline-block;width:9px;height:9px;border-radius:50%}
 .r{background:#dd6262}.g{background:#62c17e}.b{background:#65a7e8}.w{background:#ddd}.detail{padding:13px;max-height:calc(100vh - 230px);overflow:auto}
 .detail h2{margin:0 0 4px;color:#f0e2bf}.id{font:11px ui-monospace,monospace;color:#8795a7;word-break:break-all}
@@ -146,8 +152,12 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
   .tw th,.tw td{padding:9px 6px}
   .tw th:nth-child(1),.tw td:nth-child(1){width:30px;text-align:center}
   .tw th:nth-child(2),.tw td:nth-child(2){width:auto}
-  .tw th:nth-child(3),.tw td:nth-child(3){width:55px}
-  .tw th:nth-child(4),.tw td:nth-child(4){width:55px}
+  .tw th:nth-child(3),.tw td:nth-child(3){width:96px}
+  .tw th:nth-child(4),.tw td:nth-child(4){width:96px}
+  .compare-head{gap:2px}
+  .compare-head select{width:70px;padding:4px 2px;font-size:9px}
+  .compare-sort{width:20px;height:24px}
+  .compare-value{font-size:10px}
   .tw th:nth-child(5),.tw td:nth-child(5){display:none}
   .tw td:nth-child(2){font-size:13px;font-weight:600;word-break:keep-all}
   .pager{position:sticky;bottom:0;background:var(--p);z-index:5}
@@ -232,7 +242,12 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
   </div>
   <div class="main">
     <section class="panel" id="listPanel"><div class="ph">스킬젬 목록 <span id="count" class="small"></span></div>
-      <div class="tw"><table><thead><tr><th>색</th><th>이름</th><th>종류</th><th>변형</th><th>Effect ID</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="tw"><table><thead><tr>
+        <th>색</th><th>이름</th>
+        <th class="compare-th"><div class="compare-head"><select id="compareA" aria-label="비교 항목 1"></select><button type="button" class="compare-sort" id="sortA" title="정렬">↕</button></div></th>
+        <th class="compare-th"><div class="compare-head"><select id="compareB" aria-label="비교 항목 2"></select><button type="button" class="compare-sort" id="sortB" title="정렬">↕</button></div></th>
+        <th>Effect ID</th>
+      </tr></thead><tbody id="rows"></tbody></table></div>
       <div class="pager"><span id="pageText" class="small"></span><div><button id="prev">이전</button> <button id="next">다음</button></div></div>
     </section>
     <section class="panel" id="detailPanel"><div class="ph">상세</div><div class="detail" id="detail"><button class="mobile-back" id="mobileBack" type="button">← 목록으로</button><span class="small">젬을 선택하세요.</span></div></section>
@@ -253,6 +268,22 @@ let secondaryEffectsCache=null;
 const tagStates=new Map(); // 0=중립, 1=포함, -1=제외
 const weaponStates=new Map(); // 0=중립, 1=포함, -1=제외
 let weaponFilterOpen=false;
+let compareA='avgDamage', compareB='crit';
+let compareSortColumn='', compareSortDir='desc';
+const COMPARE_OPTIONS=[
+  ['avgDamage','평균 피해'],
+  ['physical','물리 피해'],
+  ['fire','화염 피해'],
+  ['cold','냉기 피해'],
+  ['lightning','번개 피해'],
+  ['chaos','카오스 피해'],
+  ['crit','치명타율'],
+  ['weaponEfficiency','무기 효율'],
+  ['damageEffectiveness','추가 피해 효율'],
+  ['attackSpeed','공격 속도'],
+  ['castSpeed','시전 속도'],
+  ['cooldown','재사용 대기시간']
+];
 const cache=new Map();
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -853,6 +884,92 @@ const tagAccentClass=k=>({
   chaos:'tag-chaos',attack:'tag-attack',spell:'tag-spell',minion:'tag-minion',critical:'tag-critical'
 }[k]||'');
 
+
+function cleanCompareNumber(v,decimals=1){
+  const n=Number(v);
+  if(!Number.isFinite(n))return '-';
+  return Number(n.toFixed(decimals)).toLocaleString('ko-KR',{maximumFractionDigits:decimals});
+}
+function compareMetric(g,key){
+  const c=g?.comparison||{};
+  if(['physical','fire','cold','lightning','chaos'].includes(key)){
+    const d=c[key]||{};
+    const av=Number(d.avg),lo=Number(d.min),hi=Number(d.max);
+    return Number.isFinite(av)&&Number.isFinite(lo)&&Number.isFinite(hi)
+      ? {sort:av,text:`${cleanCompareNumber(lo,0)}~${cleanCompareNumber(hi,0)}`}
+      : {sort:null,text:'-'};
+  }
+  const v=Number(c[key]);
+  if(!Number.isFinite(v))return {sort:null,text:'-'};
+  switch(key){
+    case 'avgDamage': return {sort:v,text:cleanCompareNumber(v,v%1?1:0)};
+    case 'crit':
+    case 'weaponEfficiency':
+    case 'damageEffectiveness':
+    case 'attackSpeed':
+      return {sort:v,text:`${cleanCompareNumber(v,1)}%`};
+    case 'castSpeed': return {sort:v,text:`${cleanCompareNumber(v,2)}/초`};
+    case 'cooldown': return {sort:v,text:`${cleanCompareNumber(v,2)}초`};
+    default:return {sort:v,text:cleanCompareNumber(v,2)};
+  }
+}
+function compareCellHtml(g,key){
+  const m=compareMetric(g,key);
+  return m.sort===null
+    ? `<span class="compare-value compare-empty">-</span>`
+    : `<span class="compare-value">${esc(m.text)}</span>`;
+}
+function sortFilteredByComparison(){
+  if(compareSortColumn!=='A'&&compareSortColumn!=='B')return;
+  const key=compareSortColumn==='A'?compareA:compareB;
+  const dir=compareSortDir==='asc'?1:-1;
+  filtered.sort((a,b)=>{
+    const av=compareMetric(a,key).sort,bv=compareMetric(b,key).sort;
+    if(av===null&&bv===null)return String(a.name||'').localeCompare(String(b.name||''),'ko');
+    if(av===null)return 1;
+    if(bv===null)return -1;
+    if(av!==bv)return (av-bv)*dir;
+    return String(a.name||'').localeCompare(String(b.name||''),'ko');
+  });
+}
+function renderCompareControls(){
+  const options=COMPARE_OPTIONS.map(([k,label])=>`<option value="${esc(k)}">${esc(label)}</option>`).join('');
+  const a=$('#compareA'),b=$('#compareB');
+  if(a){a.innerHTML=options;a.value=compareA}
+  if(b){b.innerHTML=options;b.value=compareB}
+  const sa=$('#sortA'),sb=$('#sortB');
+  if(sa){
+    const active=compareSortColumn==='A';
+    sa.classList.toggle('active',active);
+    sa.textContent=active?(compareSortDir==='asc'?'↑':'↓'):'↕';
+  }
+  if(sb){
+    const active=compareSortColumn==='B';
+    sb.classList.toggle('active',active);
+    sb.textContent=active?(compareSortDir==='asc'?'↑':'↓'):'↕';
+  }
+}
+function bindCompareControls(){
+  renderCompareControls();
+  const a=$('#compareA'),b=$('#compareB'),sa=$('#sortA'),sb=$('#sortB');
+  if(a)a.addEventListener('change',()=>{
+    compareA=a.value||'avgDamage';
+    if(compareSortColumn==='A')sortFilteredByComparison();
+    page=1;render();saveFilterState();
+  });
+  if(b)b.addEventListener('change',()=>{
+    compareB=b.value||'crit';
+    if(compareSortColumn==='B')sortFilteredByComparison();
+    page=1;render();saveFilterState();
+  });
+  const toggleSort=col=>{
+    if(compareSortColumn===col)compareSortDir=compareSortDir==='desc'?'asc':'desc';
+    else{compareSortColumn=col;compareSortDir='desc'}
+    sortFilteredByComparison();page=1;render();renderCompareControls();saveFilterState();
+  };
+  if(sa)sa.addEventListener('click',()=>toggleSort('A'));
+  if(sb)sb.addEventListener('click',()=>toggleSort('B'));
+}
 function saveFilterState(){
   try{
     const states={};
@@ -862,7 +979,7 @@ function saveFilterState(){
     sessionStorage.setItem(FILTER_STORAGE_KEY,JSON.stringify({
       q:$('#q')?.value||'',kind:$('#kind')?.value||'',variant:$('#variant')?.value||'',
       color:$('#color')?.value||'',tags:states,weapons:weaponStateObj,
-      weaponFilterOpen,page,listScrollY
+      weaponFilterOpen,compareA,compareB,compareSortColumn,compareSortDir,page,listScrollY
     }));
   }catch{}
 }
@@ -887,6 +1004,10 @@ function restoreFilterState(){
       if(v===1||v===-1)weaponStates.set(k,v);
 
     weaponFilterOpen=Boolean(x.weaponFilterOpen)||weaponStates.size>0;
+    if(COMPARE_OPTIONS.some(([k])=>k===x.compareA))compareA=x.compareA;
+    if(COMPARE_OPTIONS.some(([k])=>k===x.compareB))compareB=x.compareB;
+    if(x.compareSortColumn==='A'||x.compareSortColumn==='B')compareSortColumn=x.compareSortColumn;
+    if(x.compareSortDir==='asc'||x.compareSortDir==='desc')compareSortDir=x.compareSortDir;
     if(Number.isFinite(Number(x.page)))page=Math.max(1,Number(x.page));
     if(Number.isFinite(Number(x.listScrollY)))listScrollY=Number(x.listScrollY);
   }catch{}
@@ -1032,7 +1153,7 @@ function tagPass(g){
 }
 async function loadManifest(){
  try{
-   const r=await fetch(MANIFEST_PATH+'?v=20260922-compact-noawakened1',{cache:'no-store'});
+   const r=await fetch(MANIFEST_PATH+'?v=20260923-comparison1',{cache:'no-store'});
    if(!r.ok)throw new Error('manifest HTTP '+r.status);
 
    M=await r.json();
@@ -1075,6 +1196,7 @@ async function loadManifest(){
    renderTagFilters();
    renderWeaponFilters();
    updateWeaponFilterDisclosure();
+   bindCompareControls();
    apply(false,true);
  }catch(e){
    setStatus('manifest 로드 실패: '+e.message,true);
@@ -1092,6 +1214,7 @@ function apply(resetPage=true,restoreScroll=false){
    weaponPass(g)&&
    (!q||`${g.name}\n${g.effectId}\n${g.itemId}`.toLowerCase().includes(q))
  );
+ sortFilteredByComparison();
  if(resetPage)page=1;
  render();
  saveFilterState();
@@ -1100,10 +1223,11 @@ function apply(resetPage=true,restoreScroll=false){
 function render(){
  const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));page=Math.max(1,Math.min(page,pages));
  const part=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
- $('#rows').innerHTML=part.map(g=>`<tr data-i="${g._i}" class="${selected===g._i?'sel':''}"><td><span class="orb ${esc(g.color)}"></span></td><td>${esc(g.name)}</td><td><span class="badge">${esc(kindName(g.kind))}</span></td><td><span class="badge">${esc(variantName(g.variant))}</span></td><td><code>${esc(g.effectId)}</code></td></tr>`).join('');
+ $('#rows').innerHTML=part.map(g=>`<tr data-i="${g._i}" class="${selected===g._i?'sel':''}"><td><span class="orb ${esc(g.color)}"></span></td><td>${esc(g.name)}</td><td>${compareCellHtml(g,compareA)}</td><td>${compareCellHtml(g,compareB)}</td><td><code>${esc(g.effectId)}</code></td></tr>`).join('');
  $('#count').textContent=`${filtered.length.toLocaleString()} / ${all.length.toLocaleString()}`;
  $('#pageText').textContent=`${page} / ${pages}`;
  $('#prev').disabled=page<=1;$('#next').disabled=page>=pages;
+ renderCompareControls();
  document.querySelectorAll('#rows tr').forEach(tr=>tr.onclick=()=>showGem(Number(tr.dataset.i)));
  saveFilterState();
 }
