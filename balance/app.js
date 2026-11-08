@@ -129,19 +129,20 @@
   function renderSummary() {
     const counts={total:payload.gems.length,buff:0,nerf:0,mixed:0,adjusted:0,new:0};
     for(const g of payload.gems)counts[g.verdict]=(counts[g.verdict]||0)+1;
+    const pending=payload.source?.status==='pending';
     const cards=[['total','변경 젬'],['buff','상향'],['nerf','하향'],['mixed','복합·조정'],['new','신규']];
     $('#summary-grid').innerHTML=cards.map(([key,label])=>{
       const count=key==='mixed'?(counts.mixed+counts.adjusted):counts[key];
-      return `<div class="summary-item ${key}"><span class="summary-label">${label}</span><strong>${fmt(count,0)}</strong></div>`;
+      return `<div class="summary-item ${key}"><span class="summary-label">${label}</span><strong>${pending?'—':fmt(count,0)}</strong></div>`;
     }).join('');
     const segments=['buff','nerf','mixed','adjusted','new'];
-    $('#distribution').innerHTML=segments.map(k=>`<span class="${k}" style="width:${counts.total?100*(counts[k]||0)/counts.total:0}%" title="${esc(names[k])}: ${counts[k]||0}"></span>`).join('');
-    $('#patch-overline').textContent=`PATCH ${payload.patch} · GEM CHANGES`;
+    $('#distribution').innerHTML=pending?'':segments.map(k=>`<span class="${k}" style="width:${counts.total?100*(counts[k]||0)/counts.total:0}%" title="${esc(names[k])}: ${counts[k]||0}"></span>`).join('');
+    $('#patch-overline').textContent=`${payload.previousPatch} → ${payload.patch}`;
     $('#basis-label').textContent='Lv20 · 품질 20% 기준';
     $('#overall-note').textContent=`${payload.previousPatch} → ${payload.patch}`;
     const source=payload.source||{};
     const isPartial=['partial','pending','requires_review'].includes(source.status);
-    $('#source-label').textContent=source.status==='requires_review'?'자동 추출 · 검토 필요':(isPartial?'검증용 데이터셋':'패치노트 변환 데이터');
+    $('#source-label').textContent=source.status==='pending'?'데이터 준비 중':source.status==='requires_review'?'자동 추출 · 검토 필요':(isPartial?'검증용 데이터셋':'패치노트 변환 데이터');
     const notice=$('#source-notice');
     notice.hidden=!isPartial;
     notice.textContent=isPartial?(source.noticeKo||(source.status==='requires_review'?'자동 추출 결과입니다. 미매칭/미분류 변경을 검토한 뒤 공개하세요.':'현재 데이터는 일부 항목만 포함합니다.')) : '';
@@ -162,6 +163,13 @@
   }
   function renderList() {
     if (!payload) return;
+    if(payload.source?.status==='pending'){
+      $('#results-count').textContent='공개 전';
+      $('#list-description').textContent='선택한 패치의 변경 데이터가 등록되면 목록과 정렬이 활성화됩니다.';
+      $('#gem-list').innerHTML='<div class="empty pending-empty"><b>3.30 변경 데이터 준비 중</b>3.30 패치 데이터가 등록되지 않았습니다.<br>상단에서 3.29를 선택하면 기존 변경 내용을 확인할 수 있습니다.</div>';
+      $('#list-footnote').textContent='3.30 데이터가 배포되면 같은 화면에 자동으로 표시됩니다.';
+      return;
+    }
     const items=getFiltered();
     $('#results-count').textContent=`${fmt(items.length,0)}개 젬`;
     const about=state.metric==='all'?'주요 변경폭':metricLabels[state.metric];
@@ -177,49 +185,44 @@
   function refresh() {renderFilters();renderList();saveState();}
 
   function getChangeGroup(c) {return groupsOrder.includes(c.group)?c.group:'other';}
-  function compareBars(c) {
-    if (!Number.isFinite(c.before) || !Number.isFinite(c.after) || c.before<0 || c.after<0) return '';
-    const maximum=Math.max(c.before,c.after);
-    if (!maximum) return '';
-    const a=Math.max(3,100*c.before/maximum),b=Math.max(3,100*c.after/maximum);
-    return `<div class="compare-bars" aria-hidden="true"><div class="track"><span class="fill" style="width:${a}%"></span></div><div class="track after"><span class="fill" style="width:${b}%"></span></div></div>`;
-  }
   function numChangeRow(c) {
-    const p = c.impact==='buff'?'positive':(c.impact==='nerf'?'negative':'neutral');
-    const comment = ['castTime','attackTime','triggerInterval'].includes(c.key)
-      ? '※ 변화율은 속도(초당 사용 횟수)로 환산하여 표시'
-      : c.key==='lessDamage'
-        ? '※ less Damage의 실효 피해 배율로 환산'
-        : c.key==='crit'?'※ 치명타 확률 변화는 퍼센트포인트(%p)로 표시':'';
-    return `<article class="change-row"><div class="change-heading"><span class="change-name">${esc(c.label)}</span><span class="change-impact ${p}">${esc(formatDelta(c))}${c.impact==='buff'?' · 상향':c.impact==='nerf'?' · 하향':''}</span></div><div class="change-values"><span class="change-old">${esc(c.beforeText||fmt(c.before,2))}</span><span class="change-arr">→</span><span class="change-new">${esc(c.afterText||fmt(c.after,2))}</span></div>${compareBars(c)}${comment?`<div class="change-comment">${comment}</div>`:''}</article>`;
+    const p=c.impact==='buff'?'positive':(c.impact==='nerf'?'negative':'neutral');
+    const result=c.impact==='buff'?'상향':(c.impact==='nerf'?'하향':'변경');
+    const comment=['castTime','attackTime','triggerInterval'].includes(c.key)
+      ? '속도 환산 기준'
+      : c.key==='lessDamage' ? '실효 피해 배율 기준'
+      : c.key==='crit' ? '변화량은 %p 기준' : '';
+    return `<article class="change-tile numeric ${p}">
+      <div class="tile-title">${esc(c.label)}</div>
+      <div class="change-values"><div class="value-line"><span class="value-label">이전</span><span class="change-old">${esc(c.beforeText||fmt(c.before,2))}</span></div><div class="value-line"><span class="value-label">변경</span><span class="change-new">${esc(c.afterText||fmt(c.after,2))}</span></div></div>
+      <div class="tile-bottom"><span class="change-impact ${p}">${esc(formatDelta(c))} <span class="impact-word">· ${result}</span></span>${comment?`<span class="change-comment">${comment}</span>`:''}</div>
+    </article>`;
   }
   function qualitativeRow(c) {
     const kind=c.type==='added'?'추가':c.type==='removed'?'제거':'변경';
     const text=c.type==='added'?c.afterText:c.type==='removed'?c.beforeText:
       (c.beforeText&&c.afterText?`${c.beforeText} → ${c.afterText}`:(c.afterText||c.beforeText||'효과 변경'));
-    return `<article class="qualitative ${esc(c.type)}"><span class="sign">${c.type==='added'?'+':c.type==='removed'?'−':'↔'}</span><div><div class="kind">${kind}</div><div class="desc">${esc(text)}</div></div></article>`;
+    return `<article class="change-tile qualitative ${esc(c.type)}">
+      <div class="tile-title"><span class="sign" aria-hidden="true">${c.type==='added'?'+':c.type==='removed'?'−':'↔'}</span> 효과 ${kind}</div>
+      <div class="tile-desc">${esc(text)}</div>
+    </article>`;
   }
   function renderModalContent(g) {
     const countBuff=g.changes.filter(c=>c.impact==='buff').length;
     const countNerf=g.changes.filter(c=>c.impact==='nerf').length;
-    const details=[`${g.changes.length}개 변경 항목`];
-    if(countBuff)details.push(`상향 ${countBuff}`);
-    if(countNerf)details.push(`하향 ${countNerf}`);
     const typeText=(g.kind==='support'?'보조젬':'스킬젬') + (g.variant==='transfigured'?' · 변형':g.variant==='vaal'?' · 바알':'');
     $('#modal-id').textContent=`${payload.previousPatch} → ${payload.patch} / ${typeText}`;
     const numeric=g.changes.filter(c=>c.type==='modified'&&Number.isFinite(c.before)&&Number.isFinite(c.after));
     const qualitative=g.changes.filter(c=>!numeric.includes(c));
-    const sections=groupsOrder.map(key=>{
-      const row=numeric.filter(c=>getChangeGroup(c)===key);
-      if(!row.length)return '';
-      return `<section class="modal-section"><h3 class="modal-section-title">${esc(metricLabels[key]||'효과 변경')} <span>(${row.length})</span></h3>${row.map(numChangeRow).join('')}</section>`;
-    }).join('');
+    const ordered=groupsOrder.flatMap(group=>numeric.filter(c=>getChangeGroup(c)===group));
+    const details=[`${g.changes.length}개 변경`];
+    if(countBuff)details.push(`상향 ${countBuff}`);
+    if(countNerf)details.push(`하향 ${countNerf}`);
     $('#modal-body').innerHTML=`
       <div class="modal-header">${gemIcon(g)}<div class="modal-header-main"><h2 id="modal-title">${esc(g.nameKo)}</h2><div class="english">${esc(g.nameEn)}</div><div class="modal-header-tags">${badge(g)}<span class="gem-variant">${esc(typeText)}</span></div></div></div>
-      <div class="modal-lead">${g.gemState==='new'?'이번 패치에서 <strong>새로 추가된 젬</strong>입니다.':`<strong>${esc(details.join(' · '))}</strong> · 변경된 항목만 표시합니다.`}<br>${esc(payload.previousPatch)}에서 ${esc(payload.patch)}로 변경된 Lv20 기준 수치입니다.</div>
-      ${sections}
-      ${qualitative.length?`<section class="modal-section"><h3 class="modal-section-title">효과·설명 변경 (${qualitative.length})</h3>${qualitative.map(qualitativeRow).join('')}</section>`:''}
-      ${!g.changes.length?`<div class="empty">추가 상세정보는 공식 원문에서 확인하세요.</div>`:''}`;
+      <div class="modal-summary">${g.gemState==='new'?'이번 패치에 추가된 신규 젬':esc(details.join(' · '))}<span>변경 전 → 변경 후</span></div>
+      ${g.changes.length?`<div class="modal-grid" aria-label="젬 변경 세부 항목">${ordered.map(numChangeRow).join('')}${qualitative.map(qualitativeRow).join('')}</div>`:
+      '<div class="empty">추가 상세정보는 공식 원문에서 확인하세요.</div>'}`;
     $('#modal-basis').textContent='Lv20 · 품질 20%';
     const source=(payload.source||{}).url;
     $('#modal-source').href=/^https:\/\//i.test(source)?source:'https://www.pathofexile.com';
@@ -269,6 +272,15 @@
     } else {modalHistoryOpened=false;setModalVisible(false);}
   }
   function installEvents() {
+    $('#patch-select').addEventListener('change', e=>{
+      const patch=e.target.value;
+      if(!['3.29','3.30'].includes(patch)) return;
+      const target=new URL(location.href);
+      if(patch==='3.29')target.searchParams.delete('patch');
+      else target.searchParams.set('patch',patch);
+      target.hash='';
+      location.assign(target.href);
+    });
     $('#search').addEventListener('input',e=>{state.query=e.target.value;refresh();});
     document.querySelectorAll('[data-verdict]').forEach(btn=>btn.addEventListener('click',()=>{state.verdict=btn.dataset.verdict;refresh();}));
     $('#kind-select').addEventListener('change',e=>{state.kind=e.target.value;refresh();});
@@ -305,22 +317,16 @@
     installEvents();
     const params=new URLSearchParams(location.search);
     const requested=params.get('patch');
-    // Only explicit, safe built-in patch names are accepted (never arbitrary paths).
-    // New patch JSON automatically becomes the homepage dataset. Keep 3.29
-    // selectable with ?patch=3.29; never fetch the .template.json directly.
-    const candidates=requested==='3.29'?['3.29.json']:
-      requested==='3.30'?['3.30.json']:['3.30.json','3.29.json'];
+    const selectedPatch=['3.29','3.30'].includes(requested)?requested:'3.29';
+    $('#patch-select').value=selectedPatch;
     try {
-      let lastError=null;
-      for (const name of candidates) {
-        try {
-          const response=await fetch(`./data/${name}?v=1`,{cache:'no-store'});
-          if(!response.ok)throw Error(`${name}: HTTP ${response.status}`);
-          payload=await response.json();
-          break;
-        } catch (e) {lastError=e;}
-      }
-      if (!payload)throw lastError||Error('Cannot load patch JSON');
+      const name=`${selectedPatch}.json`;
+      const response=await fetch(`./data/${name}?v=2`,{cache:'no-store'});
+      if(response.ok)payload=await response.json();
+      else if(selectedPatch==='3.30' && response.status===404){
+        // 3.30 is deliberately selectable before its patch data is available.
+        payload={patch:'3.30',previousPatch:'3.29',gems:[],source:{status:'pending',noticeKo:'3.30 젬 변경 데이터가 아직 등록되지 않았습니다. 3.29 패치를 선택하면 현재 비교 화면을 볼 수 있습니다.'}};
+      } else throw Error(`${name}: HTTP ${response.status}`);
       if(!payload||!Array.isArray(payload.gems))throw Error('Invalid balance data: gems[] missing');
       byId=new Map(payload.gems.map(g=>[g.id,g]));
       renderSummary();refresh();syncModalWithHistory();

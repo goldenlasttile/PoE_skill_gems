@@ -6,11 +6,10 @@
   <meta name="theme-color" content="#0b1018">
   <meta name="description" content="Path of Exile 1 젬 밸런스 변경을 수치로 비교하는 모바일 시각화 페이지">
   <title>PoE1 | 젬 밸런스 변화</title>
-  <link rel="stylesheet" href="./style.css?v=1">
-  <script src="./app.js?v=1" defer></script>
+  <link rel="stylesheet" href="./style.css?v=2">
+  <script src="./app.js?v=2" defer></script>
 </head>
 <body>
-  <div class="ambient" aria-hidden="true"></div>
   <div class="shell">
     <header class="site-head">
       <a href="../index.html" class="site-brand" title="기존 스킬젬 뷰어로 이동">
@@ -21,14 +20,12 @@
     </header>
 
     <main>
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-inner">
-          <div class="hero-eyebrow"><span class="live-dot"></span><span id="patch-overline">PATCH 3.29 · GEM CHANGES</span><span class="eyebrow-sep"></span><span>VISUAL DIFF</span></div>
-          <h1 id="hero-title">젬의 변화가<br><em>한눈에 보이도록.</em></h1>
-          <p class="hero-caption">피해와 속도의 변화부터 보조젬 조정까지.<br>변경폭으로 정렬하고, 필요한 정보만 펼쳐보세요.</p>
-          <div class="hero-meta"><span id="basis-label">Lv20 · 퀄리티 20%</span><span class="meta-dot">·</span><span id="source-label">공식 데이터 기반</span></div>
+      <section class="patch-toolbar" aria-label="패치 선택">
+        <div class="patch-context">
+          <div class="patch-context-title">젬 밸런스 변경 <span id="patch-overline">3.28 → 3.29</span></div>
+          <div class="hero-meta"><span id="basis-label">Lv20 · 품질 20%</span><span class="meta-dot">·</span><span id="source-label">패치노트 기준</span></div>
         </div>
-        <div class="hero-decoration" aria-hidden="true"><div class="hero-core"></div><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div></div>
+        <label class="patch-switch"><span>패치 버전</span><select id="patch-select" aria-label="패치 버전 선택"><option value="3.29">3.29</option><option value="3.30">3.30</option></select></label>
       </section>
 
       <section class="overview" aria-label="변경 요약">
