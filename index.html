@@ -206,11 +206,32 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
   .detail{font-size:14px}
 }
 
+
+/* Viewer ↔ Balance navigation (top-right). */
+.top h1{min-width:0}
+.balance-switch{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;padding:8px 11px;border:1px solid #497b70;border-radius:8px;background:#1a302d;color:#b7ead8;text-decoration:none;font-size:12px;font-weight:700;line-height:1.15;white-space:nowrap;transition:border-color .15s ease,background .15s ease,color .15s ease}
+.balance-switch:hover{background:#24423a;border-color:#75bf9d;color:#eefdf6}
+.balance-switch:focus-visible{outline:2px solid #93dfc1;outline-offset:3px}
+.balance-switch-label-short{display:none}
+@media(max-width:520px){
+  .top{gap:8px;align-items:center}
+  .balance-switch{padding:8px 9px;font-size:11px}
+  .balance-switch-label-long{display:none}
+  .balance-switch-label-short{display:inline}
+}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="top"><h1>PoE1 Skill Gem Viewer</h1></div>
+  <div class="top">
+    <h1>PoE1 Skill Gem Viewer</h1>
+    <a class="balance-switch" href="./balance/" aria-label="젬 밸런스 변경 페이지로 이동" title="젬 밸런스 변경 페이지">
+      <span aria-hidden="true">✦</span>
+      <span class="balance-switch-label-long">밸런스 변경</span>
+      <span class="balance-switch-label-short">밸런스</span>
+      <span aria-hidden="true">↗</span>
+    </a>
+  </div>
   <div class="stats">
     <div class="st"><span>전체</span><b id="sTotal">-</b></div>
     <div class="st"><span>액티브</span><b id="sActive">-</b></div>

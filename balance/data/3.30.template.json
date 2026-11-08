@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "patch": "3.30",
+  "previousPatch": "3.29",
+  "basis": "Lv20 · Quality 20% (verify against published patch notes)",
+  "source": {
+    "url": "",
+    "mode": "not_yet_published",
+    "status": "pending",
+    "noticeKo": "3.30 공식 데이터 공개 전. 패치노트 원문을 수집한 뒤 파서를 실행하고 검증하세요."
+  },
+  "gems": []
+}
