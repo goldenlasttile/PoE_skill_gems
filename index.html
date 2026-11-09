@@ -34,7 +34,7 @@ h1{font-size:20px;margin:0;color:#f0e2bf}.small{font-size:12px;color:var(--mut)}
 .nav-float{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));z-index:1000;display:flex;gap:6px;padding:6px;background:#0b0f15dc;border:1px solid #3a4657;border-radius:12px;box-shadow:0 5px 22px #0008;backdrop-filter:blur(8px)}
 .nav-float button{width:44px;height:44px;border:1px solid #415064;border-radius:9px;background:#1d2632;color:#e7edf5;font-size:20px;font-weight:700;display:grid;place-items:center;padding:0}
 .nav-float button:active{transform:translateY(1px);background:#2a3747}
-.filters{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:7px;margin-bottom:9px}
+.filters{display:grid;grid-template-columns:minmax(0,2fr) repeat(4,minmax(0,1fr));gap:7px;margin-bottom:9px}
 input,select{background:#11161d;border:1px solid #354153;color:var(--tx);border-radius:7px;padding:9px}
 .main{display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{border:1px solid var(--line);background:var(--p);border-radius:9px;overflow:hidden}
 .ph{padding:11px 12px;border-bottom:1px solid var(--line);font-weight:700}.tw{max-height:calc(100vh - 230px);overflow:auto;min-height:520px}
@@ -207,10 +207,14 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
 }
 
 
-/* Unified patch version selector, compact and accessible */
+/* Top-right legacy balance link and the version selector inside .filters */
 .top h1{min-width:0}
-.version-select{flex:0 0 auto;width:126px;max-width:46vw;padding:7px 24px 7px 9px;background:#18222c;border:1px solid #48586b;border-radius:7px;color:#e7e2d6;font-weight:650;font-size:12px;cursor:pointer}
-@media(max-width:520px){.top{gap:8px;align-items:center}.version-select{width:118px;font-size:12px;padding:7px 19px 7px 7px}}
+.balance-switch{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;padding:8px 11px;border:1px solid #497b70;border-radius:8px;background:#1a302d;color:#b7ead8;text-decoration:none;font-size:12px;font-weight:700;line-height:1.15;white-space:nowrap;transition:border-color .15s ease,background .15s ease,color .15s ease}
+.balance-switch:hover{background:#24423a;border-color:#75bf9d;color:#eefdf6}
+.balance-switch:focus-visible{outline:2px solid #93dfc1;outline-offset:3px}
+.balance-switch-label-short{display:none}
+.version-select{width:100%;min-width:0;max-width:none;padding:9px;background:#18222c;border:1px solid #48586b;border-radius:7px;color:#e7e2d6;font-weight:650;font-size:12px;cursor:pointer}
+@media(max-width:520px){.top{gap:8px;align-items:center}.balance-switch{padding:8px 9px;font-size:11px}.balance-switch-label-long{display:none}.balance-switch-label-short{display:inline}.version-select{padding:10px 8px;font-size:14px}}
 [hidden]{display:none!important}
 .balance-filter{display:flex;align-items:center;gap:7px;margin:0 0 9px;flex-wrap:wrap}
 .balance-filter-btn{padding:6px 12px;background:#141c25;border:1px solid #465264;border-radius:6px;color:#93a3b5;font-size:12px;cursor:pointer}
@@ -233,7 +237,9 @@ body.balance-change .aux-th select{width:112px}
 .balance-old-num{font-size:inherit;color:#b7c2cc;white-space:nowrap}
 .balance-cell-vals{display:inline-flex;align-items:baseline;gap:6px;flex-wrap:wrap;min-width:0}
 .balance-gem-added{font-size:10px;margin-left:5px;color:#9ecce9;white-space:nowrap;font-weight:700}
-body.balance-pending .tag-filter-wrap,body.balance-pending .filters,body.balance-pending .balance-filter,body.balance-pending .pager,body.balance-pending #listPanel thead{display:none!important}
+body.balance-pending .tag-filter-wrap,body.balance-pending .balance-filter,body.balance-pending .pager,body.balance-pending #listPanel thead{display:none!important}
+body.balance-pending .filters{display:grid!important;grid-template-columns:minmax(0,200px)}
+body.balance-pending .filters>:not(.version-select){display:none!important}
 body.balance-pending .tw{max-height:none;min-height:120px}
 .balance-wait{padding:30px 12px!important;color:#b5c2cf;text-align:center!important;font-size:14px}
 /* Centered two-column change modal */
@@ -273,12 +279,12 @@ body.balance-modal-open{overflow:hidden}
 <div class="app">
   <div class="top">
     <h1>PoE1 Skill Gem Viewer</h1>
-    <select class="version-select" id="versionMode" aria-label="패치 버전과 조회 방식">
-      <option value="3.29-change">3.29 변경</option>
-      <option value="3.29-final">3.29 확정</option>
-      <option value="3.30-change">3.30 변경</option>
-      <option value="3.30-final">3.30 확정</option>
-    </select>
+    <a class="balance-switch" href="./balance/" aria-label="젬 밸런스 변경 페이지로 이동" title="젬 밸런스 변경 페이지">
+      <span aria-hidden="true">✦</span>
+      <span class="balance-switch-label-long">밸런스 변경</span>
+      <span class="balance-switch-label-short">밸런스</span>
+      <span aria-hidden="true">↗</span>
+    </a>
   </div>
   <div class="stats">
     <div class="st"><span>전체</span><b id="sTotal">-</b></div>
@@ -319,6 +325,12 @@ body.balance-modal-open{overflow:hidden}
     <select id="kind"><option value="">종류 전체</option><option value="active">액티브</option><option value="support">보조</option></select>
     <select id="variant"><option value="">변형 전체</option><option value="standard">일반</option><option value="vaal">바알</option><option value="transfigured">변형</option></select>
     <select id="color"><option value="">색상 전체</option><option value="r">빨강</option><option value="g">초록</option><option value="b">파랑</option><option value="w">흰색</option></select>
+    <select class="version-select" id="versionMode" aria-label="패치 버전과 조회 방식">
+      <option value="3.29-change">3.29 변경</option>
+      <option value="3.29-final">3.29 확정</option>
+      <option value="3.30-change">3.30 변경</option>
+      <option value="3.30-final">3.30 확정</option>
+    </select>
   </div>
   <div class="balance-filter" id="balanceFilters" hidden>
     <span class="small">변경 유형</span>
@@ -363,6 +375,7 @@ const MANIFEST_PATH=DATA_BASE+'manifest.json';
 const SECONDARY_EFFECTS_PATH=DATA_BASE+'secondary_effects.json?v=20260922-doom1';
 let balancePack=null, balancePending='';
 let balanceExisting=true, balanceNew=true, balanceFocused=null, balanceHistoryOpened=false;
+let balanceModalScroll=null;
 const PAGE_SIZE=100;
 let M=null, all=[], filtered=[], page=1, selected=-1, listScrollY=0;
 let secondaryEffectsCache=null;
@@ -960,7 +973,7 @@ function backToList(fromHistory=false){
   }
 }
 window.addEventListener('popstate',()=>{
-  if(!isMobile())return;
+  if(changeMode||!isMobile())return;
   if(location.hash==='#gem-detail' && selected>=0){
     document.body.classList.add('mobile-detail');
     window.scrollTo({top:0,behavior:'auto'});
@@ -1435,7 +1448,14 @@ async function getChunk(file){
  return doc;
 }
 async function showGem(i){
- if(changeMode){selected=i;render();openBalanceModal(all[i]);return;}
+ if(changeMode){
+   // Capture before rebuilding the clicked row; this avoids scroll anchoring shifts.
+   balanceModalScroll={
+     windowY:window.scrollY||document.documentElement.scrollTop||0,
+     listY:$('#listPanel .tw')?.scrollTop||0
+   };
+   selected=i;render();openBalanceModal(all[i]);return;
+ }
  selected=i;render();openMobileDetail();const g=all[i];$('#detail').innerHTML=mobileBackHtml()+'<span class="small">상세 데이터 로딩 중…</span>';
  try{
    const doc=await getChunk(g.chunk);
@@ -1728,12 +1748,24 @@ function openBalanceModal(g){
     try{history.pushState({poeBalanceModal:true},'','#balance-gem='+encodeURIComponent(b.id));balanceHistoryOpened=true;}catch{}
   }
 }
+function restoreBalanceModalScroll(){
+  if(!balanceModalScroll)return;
+  const {windowY,listY}=balanceModalScroll;
+  const restore=()=>{
+    const list=$('#listPanel .tw');
+    if(list)list.scrollTop=listY;
+    window.scrollTo({top:windowY,behavior:'auto'});
+  };
+  restore();
+  requestAnimationFrame(()=>requestAnimationFrame(restore));
+}
 function closeBalanceModal(fromPopstate=false){
   if(!$('#balanceModal').classList.contains('is-open'))return;
   $('#balanceModal').classList.remove('is-open');
   $('#balanceModal').setAttribute('aria-hidden','true');
   document.body.classList.remove('balance-modal-open');
   if(balanceFocused?.isConnected)balanceFocused.focus({preventScroll:true});
+  restoreBalanceModalScroll();
   if(!fromPopstate && balanceHistoryOpened && history.state?.poeBalanceModal){
     balanceHistoryOpened=false;
     history.back();
@@ -1768,7 +1800,13 @@ window.addEventListener('keydown',e=>{
   }
 });
 window.addEventListener('popstate',()=>{
-  if(changeMode&&$('#balanceModal').classList.contains('is-open')&&!location.hash.startsWith('#balance-gem='))closeBalanceModal(true);
+  if(!changeMode)return;
+  if($('#balanceModal').classList.contains('is-open')&&!location.hash.startsWith('#balance-gem=')){
+    closeBalanceModal(true);
+  }else if(!$('#balanceModal').classList.contains('is-open')){
+    // history.back() may restore scroll after modal close; reinstate the saved position.
+    restoreBalanceModalScroll();
+  }
 });
 
 loadManifest();
