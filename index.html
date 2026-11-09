@@ -207,30 +207,78 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
 }
 
 
-/* Viewer ↔ Balance navigation (top-right). */
+/* Unified patch version selector, compact and accessible */
 .top h1{min-width:0}
-.balance-switch{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;padding:8px 11px;border:1px solid #497b70;border-radius:8px;background:#1a302d;color:#b7ead8;text-decoration:none;font-size:12px;font-weight:700;line-height:1.15;white-space:nowrap;transition:border-color .15s ease,background .15s ease,color .15s ease}
-.balance-switch:hover{background:#24423a;border-color:#75bf9d;color:#eefdf6}
-.balance-switch:focus-visible{outline:2px solid #93dfc1;outline-offset:3px}
-.balance-switch-label-short{display:none}
-@media(max-width:520px){
-  .top{gap:8px;align-items:center}
-  .balance-switch{padding:8px 9px;font-size:11px}
-  .balance-switch-label-long{display:none}
-  .balance-switch-label-short{display:inline}
-}
+.version-select{flex:0 0 auto;width:126px;max-width:46vw;padding:7px 24px 7px 9px;background:#18222c;border:1px solid #48586b;border-radius:7px;color:#e7e2d6;font-weight:650;font-size:12px;cursor:pointer}
+@media(max-width:520px){.top{gap:8px;align-items:center}.version-select{width:118px;font-size:12px;padding:7px 19px 7px 7px}}
+[hidden]{display:none!important}
+.balance-filter{display:flex;align-items:center;gap:7px;margin:0 0 9px;flex-wrap:wrap}
+.balance-filter-btn{padding:6px 12px;background:#141c25;border:1px solid #465264;border-radius:6px;color:#93a3b5;font-size:12px;cursor:pointer}
+.balance-filter-btn.is-active{background:#283849;border-color:#7e98b1;color:#ecf1f6;font-weight:700}
+.balance-source-note{margin-left:auto;font-size:10px;color:#92a4b5}
+body.balance-change .main{grid-template-columns:minmax(0,1fr)}
+body.balance-change #detailPanel{display:none!important}
+body.balance-change #listPanel{min-width:0}
+body.balance-change .tw{max-height:calc(100vh - 250px)}
+body.balance-change .tw table{table-layout:fixed}
+body.balance-change .tw th:nth-child(1),body.balance-change .tw td:nth-child(1){width:34px;text-align:center}
+body.balance-change .tw th:nth-child(2),body.balance-change .tw td:nth-child(2){width:auto}
+body.balance-change .tw th:nth-child(3),body.balance-change .tw td:nth-child(3),body.balance-change .tw th:nth-child(4),body.balance-change .tw td:nth-child(4),body.balance-change .tw th:nth-child(5),body.balance-change .tw td:nth-child(5){width:152px}
+body.balance-change .compare-head select{width:112px}
+body.balance-change .aux-th select{width:112px}
+.balance-change-num{font-size:inherit;font-weight:700;white-space:nowrap}
+.balance-change-num.is-buff{color:#44FF44}
+.balance-change-num.is-nerf{color:#FF4444}
+.balance-change-num.is-neutral{color:#d8e0e9}
+.balance-old-num{font-size:inherit;color:#b7c2cc;white-space:nowrap}
+.balance-cell-vals{display:inline-flex;align-items:baseline;gap:6px;flex-wrap:wrap;min-width:0}
+.balance-gem-added{font-size:10px;margin-left:5px;color:#9ecce9;white-space:nowrap;font-weight:700}
+body.balance-pending .tag-filter-wrap,body.balance-pending .filters,body.balance-pending .balance-filter,body.balance-pending .pager,body.balance-pending #listPanel thead{display:none!important}
+body.balance-pending .tw{max-height:none;min-height:120px}
+.balance-wait{padding:30px 12px!important;color:#b5c2cf;text-align:center!important;font-size:14px}
+/* Centered two-column change modal */
+.balance-modal{position:fixed;inset:0;z-index:2000;display:none}
+.balance-modal.is-open{display:block}
+.balance-modal-backdrop{position:absolute;inset:0;background:#03070bd0}
+.balance-modal-sheet{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 24px));max-height:min(86dvh,790px);display:flex;flex-direction:column;background:#151d26;border:1px solid #465363;border-radius:12px;box-shadow:0 20px 70px #000b;overflow:hidden}
+.balance-modal-top{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #303d4b;color:#9faebf;font-size:12px}
+.balance-modal-top button{width:32px;height:32px;display:grid;place-items:center;border:1px solid #4a5664;border-radius:7px;background:#222d39;color:#e6ecf3;font-size:23px;line-height:1;cursor:pointer}
+.balance-modal-body{overflow-y:auto;overscroll-behavior:contain;padding:16px;min-height:0}
+.balance-modal-name{font-size:21px;font-weight:750;color:#f0e2bf;margin:0}
+.balance-modal-en{font-size:11px;color:#96a8b8;margin:3px 0 12px}
+.balance-modal-verdict{font-size:11px;color:#bbc9d5;margin-bottom:12px}
+.balance-modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:stretch}
+.balance-tile{min-width:0;padding:11px 12px;background:#101821;border:1px solid #334151;border-radius:8px}
+.balance-tile.buff{border-top:2px solid #44FF44}.balance-tile.nerf{border-top:2px solid #FF4444}
+.balance-tile .balance-tile-label{font-size:11px;font-weight:700;color:#d3dce5;margin-bottom:8px}
+.balance-tile .balance-tile-values{display:flex;flex-direction:column;gap:5px;font-variant-numeric:tabular-nums;font-size:12px}
+.balance-tile .balance-old{color:#a0afbf}
+.balance-tile .balance-new{font-weight:750;color:#e6eef5}
+.balance-tile .balance-new.buff,.balance-tile .balance-delta.buff{color:#44FF44}
+.balance-tile .balance-new.nerf,.balance-tile .balance-delta.nerf{color:#FF4444}
+.balance-tile .balance-delta{font-size:11px;font-weight:700;margin-top:7px}
+.balance-tile.qualitative{grid-column:1/-1}
+.balance-info-tile .balance-description{font-size:12px;line-height:1.55;color:#d9e4e9;overflow-wrap:anywhere}
+.balance-info-tile.wide{grid-column:1/-1}
+.balance-tile.qualitative .balance-description{font-size:12px;line-height:1.55;white-space:pre-wrap;color:#d8e1e8}
+.balance-extra-title{font-size:12px;margin:16px 0 8px;color:#acbac8;font-weight:700}
+.balance-modal-bottom{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #303d4b;padding:11px 15px;color:#95a6b3;font-size:11px}
+.balance-modal-bottom a{color:#9ed7c3}
+body.balance-modal-open{overflow:hidden}
+@media(max-width:900px){body.balance-change .tw{max-height:none}body.balance-change .tw th:nth-child(1),body.balance-change .tw td:nth-child(1){width:24px}body.balance-change .tw th:nth-child(3),body.balance-change .tw td:nth-child(3),body.balance-change .tw th:nth-child(4),body.balance-change .tw td:nth-child(4),body.balance-change .tw th:nth-child(5),body.balance-change .tw td:nth-child(5){width:88px}body.balance-change .compare-head select{width:70px}body.balance-change .aux-th select{width:78px}.balance-cell-vals{gap:3px}.balance-change-num{font-size:10px}.balance-source-note{margin-left:0;flex-basis:100%}}
+@media(max-width:520px){.balance-modal-body{padding:11px}.balance-modal-grid{gap:6px}.balance-tile{padding:9px 8px}.balance-modal-name{font-size:19px}.balance-tile .balance-tile-values{font-size:11px}.balance-tile .balance-tile-label{font-size:11px}}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="top">
     <h1>PoE1 Skill Gem Viewer</h1>
-    <a class="balance-switch" href="./balance/" aria-label="젬 밸런스 변경 페이지로 이동" title="젬 밸런스 변경 페이지">
-      <span aria-hidden="true">✦</span>
-      <span class="balance-switch-label-long">밸런스 변경</span>
-      <span class="balance-switch-label-short">밸런스</span>
-      <span aria-hidden="true">↗</span>
-    </a>
+    <select class="version-select" id="versionMode" aria-label="패치 버전과 조회 방식">
+      <option value="3.29-change">3.29 변경</option>
+      <option value="3.29-final">3.29 확정</option>
+      <option value="3.30-change">3.30 변경</option>
+      <option value="3.30-final">3.30 확정</option>
+    </select>
   </div>
   <div class="stats">
     <div class="st"><span>전체</span><b id="sTotal">-</b></div>
@@ -272,8 +320,14 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
     <select id="variant"><option value="">변형 전체</option><option value="standard">일반</option><option value="vaal">바알</option><option value="transfigured">변형</option></select>
     <select id="color"><option value="">색상 전체</option><option value="r">빨강</option><option value="g">초록</option><option value="b">파랑</option><option value="w">흰색</option></select>
   </div>
+  <div class="balance-filter" id="balanceFilters" hidden>
+    <span class="small">변경 유형</span>
+    <button type="button" class="balance-filter-btn is-active" data-balance-filter="existing" aria-pressed="true">변경</button>
+    <button type="button" class="balance-filter-btn is-active" data-balance-filter="new" aria-pressed="true">추가</button>
+    <span class="small balance-source-note" id="balanceSourceNote"></span>
+  </div>
   <div class="main">
-    <section class="panel" id="listPanel"><div class="ph">스킬젬 목록 <span id="count" class="small"></span></div>
+    <section class="panel" id="listPanel"><div class="ph"><span id="listTitle">스킬젬 목록</span> <span id="count" class="small"></span></div>
       <div class="tw"><table><thead><tr>
         <th>색</th><th>이름</th>
         <th class="compare-th"><div class="compare-head"><select id="compareA" aria-label="비교 항목 1"></select><button type="button" class="compare-sort" id="sortA" title="정렬">↕</button></div></th>
@@ -290,10 +344,25 @@ pre{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monos
   <button id="navTop" type="button" aria-label="맨 위로" title="맨 위로">↑</button>
   <button id="navForward" type="button" aria-label="앞으로" title="앞으로">›</button>
 </div>
+<div id="balanceModal" class="balance-modal" aria-hidden="true">
+  <div class="balance-modal-backdrop" data-close-balance="true"></div>
+  <section class="balance-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="balanceModalTitle" tabindex="-1">
+    <div class="balance-modal-top"><span id="balanceModalContext"></span><button id="balanceModalClose" type="button" aria-label="닫기">×</button></div>
+    <div id="balanceModalBody" class="balance-modal-body"></div>
+    <div class="balance-modal-bottom"><span id="balanceModalBasis">Lv20 기준</span><a id="balanceModalSource" href="https://www.pathofexile.com/forum/view-thread/3987254" target="_blank" rel="noopener noreferrer">공식 원문 ↗</a></div>
+  </section>
+</div>
 <script>
-const DATA_BASE='./data/';
+const VIEW_MODES=['3.29-change','3.29-final','3.30-change','3.30-final'];
+const requestedView=new URLSearchParams(window.location.search).get('view');
+const activeView=VIEW_MODES.includes(requestedView)?requestedView:'3.29-final';
+const changeMode=activeView.endsWith('-change');
+const selectedPatch=activeView.slice(0,4);
+const DATA_BASE=activeView==='3.30-final'?'./data/3.30/':'./data/';
 const MANIFEST_PATH=DATA_BASE+'manifest.json';
 const SECONDARY_EFFECTS_PATH=DATA_BASE+'secondary_effects.json?v=20260922-doom1';
+let balancePack=null, balancePending='';
+let balanceExisting=true, balanceNew=true, balanceFocused=null, balanceHistoryOpened=false;
 const PAGE_SIZE=100;
 let M=null, all=[], filtered=[], page=1, selected=-1, listScrollY=0;
 let secondaryEffectsCache=null;
@@ -933,11 +1002,13 @@ function compareMetric(g,key){
   const c=g?.comparison||{};
   if(['physical','fire','cold','lightning','chaos'].includes(key)){
     const d=c[key]||{};
+    if(d.avg==null||d.min==null||d.max==null)return {sort:null,text:'-'};
     const av=Number(d.avg),lo=Number(d.min),hi=Number(d.max);
     return Number.isFinite(av)&&Number.isFinite(lo)&&Number.isFinite(hi)
       ? {sort:av,text:`${cleanCompareNumber(lo,0)}~${cleanCompareNumber(hi,0)}`}
       : {sort:null,text:'-'};
   }
+  if(c[key]==null)return {sort:null,text:'-'};
   const v=Number(c[key]);
   if(!Number.isFinite(v))return {sort:null,text:'-'};
   switch(key){
@@ -953,6 +1024,8 @@ function compareMetric(g,key){
   }
 }
 function compareCellHtml(g,key){
+  const change=changeMode?balanceSelectedChange(g,key,'compare'):null;
+  if(change)return balanceChangedCell(change,'compare-value');
   const m=compareMetric(g,key);
   return m.sort===null
     ? `<span class="compare-value compare-empty">-</span>`
@@ -962,7 +1035,7 @@ function auxMetricValue(g,key){
   const a=g?.aux||{};
   if(key==='cost'||key==='reservation'){
     const x=a[key]||{};
-    const s=Number(x.sort);
+    const s=x.sort==null?NaN:Number(x.sort);
     return {
       sort:Number.isFinite(s)?s:null,
       text:(x.text&&x.text!=='')?x.text:'-'
@@ -970,12 +1043,13 @@ function auxMetricValue(g,key){
   }
   if(key==='duration'||key==='radius'){
     const x=a[key]||{};
-    const s=Number(x.sort);
+    const s=x.sort==null?NaN:Number(x.sort);
     return {
       sort:Number.isFinite(s)?s:null,
       text:(x.text&&x.text!=='')?x.text:'-'
     };
   }
+  if(a[key]==null)return {sort:null,text:'-'};
   const v=Number(a[key]);
   if(!Number.isFinite(v))return {sort:null,text:'-'};
   switch(key){
@@ -985,15 +1059,17 @@ function auxMetricValue(g,key){
   }
 }
 function auxCellHtml(g,key){
+  const change=changeMode?balanceSelectedChange(g,key,'aux'):null;
+  if(change)return balanceChangedCell(change,'aux-value');
   const m=auxMetricValue(g,key);
   return m.sort===null && m.text==='-'
     ? `<span class="aux-value compare-empty">-</span>`
     : `<span class="aux-value">${esc(m.text)}</span>`;
 }
 function currentSortMetric(g){
-  if(compareSortColumn==='A')return compareMetric(g,compareA);
-  if(compareSortColumn==='B')return compareMetric(g,compareB);
-  if(compareSortColumn==='C')return auxMetricValue(g,auxMetric);
+  if(compareSortColumn==='A')return changeMode?(balanceSelectedChange(g,compareA,'compare')||compareMetric(g,compareA)):compareMetric(g,compareA);
+  if(compareSortColumn==='B')return changeMode?(balanceSelectedChange(g,compareB,'compare')||compareMetric(g,compareB)):compareMetric(g,compareB);
+  if(compareSortColumn==='C')return changeMode?(balanceSelectedChange(g,auxMetric,'aux')||auxMetricValue(g,auxMetric)):auxMetricValue(g,auxMetric);
   return {sort:null,text:'-'};
 }
 function sortFilteredByComparison(){
@@ -1060,7 +1136,7 @@ function saveFilterState(){
     sessionStorage.setItem(FILTER_STORAGE_KEY,JSON.stringify({
       q:$('#q')?.value||'',kind:$('#kind')?.value||'',variant:$('#variant')?.value||'',
       color:$('#color')?.value||'',tags:states,weapons:weaponStateObj,
-      weaponFilterOpen,compareA,compareB,auxMetric,compareSortColumn,compareSortDir,page,listScrollY
+      weaponFilterOpen,compareA,compareB,auxMetric,compareSortColumn,compareSortDir,page,listScrollY,balanceExisting,balanceNew
     }));
   }catch{}
 }
@@ -1068,6 +1144,8 @@ function restoreFilterState(){
   try{
     const x=JSON.parse(sessionStorage.getItem(FILTER_STORAGE_KEY)||'null');
     if(!x)return;
+    balanceExisting=x.balanceExisting!==false;
+    balanceNew=x.balanceNew!==false;
     if($('#q'))$('#q').value=x.q||'';
     if($('#kind'))$('#kind').value=x.kind||'';
     if($('#variant'))$('#variant').value=(x.variant==='awakened'?'':(x.variant||''));
@@ -1235,7 +1313,11 @@ function tagPass(g){
 }
 async function loadManifest(){
  try{
-   const r=await fetch(MANIFEST_PATH+'?v=20260923-aux1',{cache:'no-store'});
+   const r=await fetch(MANIFEST_PATH+'?v=20261109-balance-modes',{cache:'no-store'});
+   if(!r.ok && activeView==='3.30-final'){
+     showBalanceWaiting('3.30 확정 데이터가 아직 등록되지 않았습니다. data/3.30/manifest.json이 필요합니다.');
+     return;
+   }
    if(!r.ok)throw new Error('manifest HTTP '+r.status);
 
    M=await r.json();
@@ -1260,6 +1342,34 @@ async function loadManifest(){
      weapons:Array.isArray(x.weapons)?x.weapons:[],
      _i:i
    }));
+   if(changeMode){
+     try{
+       const dataResponse=await fetch(`./balance/data/${selectedPatch}.json?v=20261109-1`,{cache:'no-store'});
+       if(!dataResponse.ok)throw new Error('HTTP '+dataResponse.status);
+       const nextPack=await dataResponse.json();
+       if(!Array.isArray(nextPack.gems))throw new Error('변경 데이터에 gems 배열이 없습니다.');
+       balancePack=nextPack;
+       const known=new Map(all.map(g=>[g.effectId,g]));
+       all=balancePack.gems.map((change,i)=>{
+         const found=known.get(change.id)||{};
+         return {...found,
+           effectId:change.id,
+           itemId:found.itemId||'',
+           name:change.nameKo||found.name||change.nameEn||change.id,
+           kind:change.kind||found.kind||'active',
+           variant:change.variant||found.variant||'standard',
+           color:change.color||found.color||'w',
+           tags:found.tags||[],weapons:found.weapons||[],
+           balanceData:change,_i:i};
+       });
+       $('#listTitle').textContent=selectedPatch+' 변경 젬 목록';
+       const sourceNote=balancePack.source?.status==='partial'?'선별 데이터 · 전체 변경 목록 아님':'';
+       $('#balanceSourceNote').textContent=sourceNote;
+     }catch(e){
+       showBalanceWaiting(selectedPatch+' 변경 데이터가 아직 등록되지 않았습니다. balance/data/'+selectedPatch+'.json 파일이 필요합니다.');
+       return;
+     }
+   }
    filtered=[...all];
 
    const c={total:all.length,active:0,support:0,standard:0,vaal:0,transfigured:0};
@@ -1275,12 +1385,14 @@ async function loadManifest(){
    $('#sTrans').textContent=c.transfigured;
 
    restoreFilterState();
+   renderBalanceFilters();
    renderTagFilters();
    renderWeaponFilters();
    updateWeaponFilterDisclosure();
    bindCompareControls();
    apply(false,true);
  }catch(e){
+   if(activeView==='3.30-final'){showBalanceWaiting('3.30 확정 데이터 로드 실패: '+e.message);return;}
    setStatus('manifest 로드 실패: '+e.message,true);
    const box=$('#tagFilterList');
    if(box)box.innerHTML='<span class="err">data/manifest.json 위치와 내용을 확인하세요.</span>';
@@ -1294,6 +1406,7 @@ function apply(resetPage=true,restoreScroll=false){
    (!c||g.color===c)&&
    tagPass(g)&&
    weaponPass(g)&&
+   (!changeMode||((g.balanceData?.gemState==='new'?balanceNew:balanceExisting)))&&
    (!q||`${g.name}\n${g.effectId}\n${g.itemId}`.toLowerCase().includes(q))
  );
  sortFilteredByComparison();
@@ -1305,7 +1418,7 @@ function apply(resetPage=true,restoreScroll=false){
 function render(){
  const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));page=Math.max(1,Math.min(page,pages));
  const part=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
- $('#rows').innerHTML=part.map(g=>`<tr data-i="${g._i}" class="${selected===g._i?'sel':''}"><td><span class="orb ${esc(g.color)}"></span></td><td>${esc(g.name)}</td><td>${compareCellHtml(g,compareA)}</td><td>${compareCellHtml(g,compareB)}</td><td>${auxCellHtml(g,auxMetric)}</td></tr>`).join('');
+ $('#rows').innerHTML=part.map(g=>`<tr data-i="${g._i}" class="${selected===g._i?'sel':''}"><td><span class="orb ${esc(g.color)}"></span></td><td>${esc(g.name)}${changeMode&&g.balanceData?.gemState==='new'?'<span class="balance-gem-added">신규</span>':''}</td><td>${compareCellHtml(g,compareA)}</td><td>${compareCellHtml(g,compareB)}</td><td>${auxCellHtml(g,auxMetric)}</td></tr>`).join('')||'<tr><td colspan="5" class="balance-wait">조건에 맞는 젬이 없습니다.</td></tr>';
  $('#count').textContent=`${filtered.length.toLocaleString()} / ${all.length.toLocaleString()}`;
  $('#pageText').textContent=`${page} / ${pages}`;
  $('#prev').disabled=page<=1;$('#next').disabled=page>=pages;
@@ -1322,6 +1435,7 @@ async function getChunk(file){
  return doc;
 }
 async function showGem(i){
+ if(changeMode){selected=i;render();openBalanceModal(all[i]);return;}
  selected=i;render();openMobileDetail();const g=all[i];$('#detail').innerHTML=mobileBackHtml()+'<span class="small">상세 데이터 로딩 중…</span>';
  try{
    const doc=await getChunk(g.chunk);
@@ -1416,5 +1530,246 @@ $('#navBack').onclick=()=>{
 };
 $('#navTop').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
 $('#navForward').onclick=()=>history.forward();
+
+// === Versioned comparison UI ===
+function renderBalanceFilters(){
+  for(const btn of document.querySelectorAll('[data-balance-filter]')){
+    const enabled=btn.dataset.balanceFilter==='new'?balanceNew:balanceExisting;
+    btn.classList.toggle('is-active',enabled);
+    btn.setAttribute('aria-pressed',String(enabled));
+  }
+}
+function showBalanceWaiting(message){
+  balancePending=message;
+  document.body.classList.add('balance-pending');
+  $('#listTitle').textContent=activeView.replace('-',' ');
+  $('#rows').innerHTML=`<tr><td colspan="5" class="balance-wait">${esc(message)}</td></tr>`;
+  $('#count').textContent='';
+  for(const id of ['sTotal','sActive','sSupport','sStd','sVaal','sTrans'])$('#'+id).textContent='-';
+}
+const balanceGroupsOrder=['damage','effectiveness','supportDamage','speed','cooldown','cost','crit','radius','duration','projectiles','utility','other'];
+function balanceSelectedChange(g,key,area){
+  const b=g?.balanceData;
+  if(!b)return null;
+  const mods=(b.changes||[]).filter(c=>c.type==='modified'&&Number.isFinite(c.before)&&Number.isFinite(c.after));
+  let hit=[];
+  if(area==='compare'){
+    if(key==='avgDamage')hit=mods.filter(c=>/^hit\.(physical|fire|cold|lightning|chaos)$/.test(c.key));
+    else if(['physical','fire','cold','lightning','chaos'].includes(key))hit=mods.filter(c=>c.key===`hit.${key}`);
+    else if(key==='castSpeed')hit=mods.filter(c=>c.key==='castTime');
+    else if(key==='attackSpeed')hit=mods.filter(c=>c.key==='attackSpeed'||c.key==='attackTime');
+    else if(key==='crit'||key==='damageEffectiveness')hit=mods.filter(c=>c.key===key);
+    else if(key==='weaponEfficiency')hit=mods.filter(c=>c.key==='weaponEfficiency');
+  }else{
+    const map={cost:['manaCost','lifeCost','energyShieldCost','rageCost'],reservation:['reservation','manaReservation','lifeReservation','reservationPercent'],costMultiplier:['costMultiplier'],cooldown:['cooldown'],duration:['duration','baseDuration','buffDuration','debuffDuration'],radius:['radius']};
+    hit=mods.filter(c=>(map[key]||[]).includes(c.key));
+  }
+  if(!hit.length)return null;
+  // Every displayed number must correspond to the selected comparison metric.
+  if(key==='castSpeed'||key==='attackSpeed'){
+    const c=hit[0];
+    if(c.key==='castTime'||c.key==='attackTime'){
+      if(c.before<=0||c.after<=0)return null;
+      const old=1/c.before, newer=1/c.after;
+      return {sort:newer,text:'',beforeText:`${cleanCompareNumber(old,2)}/초`,afterText:`${cleanCompareNumber(newer,2)}/초`,impact:c.impact};
+    }
+  }
+  if(key==='avgDamage'){
+    const gbase=compareMetric(g,'avgDamage').sort;
+    const delta=hit.reduce((total,c)=>total+(c.after-c.before),0);
+    // The 3.29 manifest is post-3.29; for 3.30 change it is pre-3.30.
+    let before,after;
+    if(Number.isFinite(gbase)){
+      if(selectedPatch==='3.29') {after=gbase;before=gbase-delta;}
+      else {before=gbase;after=gbase+delta;}
+    }else{before=hit.reduce((a,c)=>a+c.before,0);after=hit.reduce((a,c)=>a+c.after,0);}
+    const impact=hit.some(c=>c.impact==='buff')&&hit.some(c=>c.impact==='nerf')?'neutral':hit[0].impact;
+    return {sort:after,beforeText:cleanCompareNumber(before,1),afterText:cleanCompareNumber(after,1),impact};
+  }
+  if(area==='aux'&&key==='cost'){
+    const baseText=g.aux?.cost?.text;
+    const delta=hit.reduce((n,c)=>n+c.after-c.before,0);
+    let beforeText,afterText;
+    if(baseText&&baseText!=='-'){
+      // Preserve other simultaneously consumed resources that did not change.
+      beforeText=baseText;
+      afterText=baseText;
+      for(const c of hit){
+        const label=balanceResourceName(c.key);
+        const oldPart=`${label} ${c.beforeText||cleanCompareNumber(c.before,2)}`;
+        const newPart=`${label} ${c.afterText||cleanCompareNumber(c.after,2)}`;
+        if(selectedPatch==='3.29')beforeText=beforeText.replace(newPart,oldPart);
+        else afterText=afterText.replace(oldPart,newPart);
+      }
+    }else{
+      beforeText=hit.map(c=>`${balanceResourceName(c.key)} ${c.beforeText||cleanCompareNumber(c.before,2)}`).join(' · ');
+      afterText=hit.map(c=>`${balanceResourceName(c.key)} ${c.afterText||cleanCompareNumber(c.after,2)}`).join(' · ');
+    }
+    const baseline=g.aux?.cost?.sort;
+    const sort=Number.isFinite(Number(baseline))&&baseline!==null
+      ? (selectedPatch==='3.29'?Number(baseline):Number(baseline)+delta)
+      : hit.reduce((n,c)=>n+c.after,0);
+    return {sort,beforeText,afterText,impact:hit.length===1?hit[0].impact:'neutral'};
+  }
+  const c=hit[0];
+  let sort=c.after;
+  let beforeText=c.beforeText||cleanCompareNumber(c.before,2);
+  let afterText=c.afterText||cleanCompareNumber(c.after,2);
+  if(area==='compare'&&['physical','fire','cold','lightning','chaos'].includes(key)){
+    // Range text from patch notes takes priority over a scalar comparison.
+    sort=c.after;
+  }
+  return {sort,beforeText,afterText,impact:c.impact};
+}
+function balanceResourceName(key){return ({manaCost:'마나',lifeCost:'생명력',energyShieldCost:'에너지 보호막',rageCost:'분노'})[key]||'비용';}
+function balanceChangedCell(c,cls){
+  const color=c.impact==='buff'?'is-buff':c.impact==='nerf'?'is-nerf':'is-neutral';
+  return `<span class="${cls} balance-cell-vals"><span class="balance-old-num">${esc(c.beforeText)}</span><span class="balance-change-num ${color}">${esc(c.afterText)}</span></span>`;
+}
+function balanceDelta(c){
+  if(!Number.isFinite(c.before)||!Number.isFinite(c.after))return '변경';
+  if(c.key==='crit'){
+    const n=c.after-c.before;return `${n>0?'+':''}${cleanCompareNumber(n,2)}%p`;
+  }
+  const n=Number.isFinite(c.deltaPct)?c.deltaPct:c.impactPct;
+  if(!Number.isFinite(n))return '변경';
+  return `${n>0?'+':''}${cleanCompareNumber(n,1)}%`;
+}
+function balanceNumericTile(c){
+  const color=c.impact==='buff'?'buff':c.impact==='nerf'?'nerf':'';
+  const old=c.beforeText||cleanCompareNumber(c.before,2);
+  const next=c.afterText||cleanCompareNumber(c.after,2);
+  return `<article class="balance-tile ${color}"><div class="balance-tile-label">${esc(c.label||c.key)}</div><div class="balance-tile-values"><div class="balance-old">이전 ${esc(old)}</div><div class="balance-new ${color}">변경 ${esc(next)}</div></div><div class="balance-delta ${color}">${esc(balanceDelta(c))}</div></article>`;
+}
+function balanceQualitativeTile(c){
+  const title=c.type==='added'?'추가':c.type==='removed'?'제거':'변경';
+  const detail=(c.type==='removed'?c.beforeText:c.afterText)||c.beforeText||'-';
+  return `<article class="balance-tile qualitative"><div class="balance-tile-label">${esc(c.label||'효과')} · ${title}</div><div class="balance-description">${esc(detail)}</div></article>`;
+}
+function balanceNewGemMetrics(g){
+  const entries=[];
+  const push=(name,x)=>{if(x?.sort!==null&&x?.sort!==undefined&&x?.text&&x.text!=='-')entries.push([name,x.text]);};
+  const c=g?.comparison||{};
+  const lv=c.level||g?.aux?.level||20;
+  for(const [key,label] of [['avgDamage','평균 피해'],['crit','치명타율'],['damageEffectiveness','추가 피해 효율'],['castSpeed','시전 속도']]){
+    push(label,compareMetric(g,key));
+  }
+  for(const [key,label] of [['cost','소모 비용'],['reservation','점유'],['costMultiplier','소모·점유 배율'],['cooldown','쿨다운'],['duration','지속시간'],['radius','효과 반경']]){
+    push(label,auxMetricValue(g,key));
+  }
+  if(!entries.length)return '';
+  return `<div class="balance-extra-title">신규 젬 기본 정보 · Lv${esc(lv)}</div><div class="balance-modal-grid">${entries.slice(0,10).map(([k,v])=>`<article class="balance-tile"><div class="balance-tile-label">${esc(k)}</div><div class="balance-new">${esc(v)}</div></article>`).join('')}</div>`;
+}
+function balanceDetailInfoTile(label,value){
+  const long=String(value).length>85?'wide':'';
+  return `<article class="balance-tile balance-info-tile ${long}"><div class="balance-tile-label">${esc(label)}</div><div class="balance-description">${esc(value)}</div></article>`;
+}
+async function appendNewGemXmlDetails(g){
+  // New gems often have much more detailed level/quality descriptions in the
+  // existing XML snapshot than in the launch-note summary. Fetch only on demand.
+  if(!g?.chunk||!g?.balanceData)return;
+  const id=g.balanceData.id;
+  try{
+    const doc=await getChunk(g.chunk);
+    const gem=[...doc.querySelectorAll('gem')].find(x=>x.getAttribute('effectId')===g.effectId);
+    if(!gem)return;
+    const d=obj(gem.querySelector(':scope > repoeGemData'));
+    const pl=d.per_level||{};
+    const available=levelKeys(pl).filter(x=>Number.isFinite(Number(x))&&Number(x)<=20);
+    const lv=String(g.comparison?.level||g.aux?.level||(available.length?available.at(-1):1));
+    const merged=mergeRepoe(d.static||{},pl[lv]||{});
+    const keys=sortedStatKeys(Object.keys(merged.stat_text||{}),tooltipRankMap(d.tooltip_order||[]));
+    const rows=[];
+    for(const k of keys){
+      const text=merged.stat_text[k];
+      if(typeof text==='string'&&text.trim()&&!rows.some(x=>x[1]===text.trim()))rows.push(['젬 효과',text.trim()]);
+    }
+    const q=quality20Lines(d.static||{});
+    for(const line of q)rows.push(['퀄리티 20%',line]);
+    if(merged.required_level!=null)rows.push(['요구 레벨',String(merged.required_level)]);
+    const req=merged.stat_requirements||{};
+    for(const [k,label] of [['str','힘'],['dex','민첩'],['int','지능']])
+      if(req[k]!=null && Number(req[k])>0) rows.push([`${label} 요구치`,String(req[k])]);
+    const tooltip=(d.support_gem?.support_text||d.active_skill?.description||'').trim();
+    if(tooltip)rows.push(['설명',tooltip]);
+    const body=$('#balanceModalBody');
+    if(!rows.length||!$('#balanceModal').classList.contains('is-open')||$('#balanceModal').dataset.gem!==id)return;
+    body.insertAdjacentHTML('beforeend',`<div class="balance-extra-title">게임 데이터 · Lv${esc(lv)} 효과 / 퀄리티</div><div class="balance-modal-grid">${rows.slice(0,18).map(([k,v])=>balanceDetailInfoTile(k,v)).join('')}</div>`);
+  }catch(e){console.warn('신규 젬 상세 데이터 조회 실패:',e.message);}
+}
+function openBalanceModal(g){
+  const b=g?.balanceData;
+  if(!b)return;
+  const root=$('#balanceModal');
+  root.dataset.gem=b.id;
+  balanceFocused=document.activeElement;
+  const isNew=b.gemState==='new';
+  const numeric=(b.changes||[]).filter(c=>c.type==='modified'&&Number.isFinite(c.before)&&Number.isFinite(c.after));
+  const other=(b.changes||[]).filter(c=>!numeric.includes(c));
+  numeric.sort((a,b)=>balanceGroupsOrder.indexOf(a.group)-balanceGroupsOrder.indexOf(b.group));
+  const typeText=(b.kind==='support'?'보조젬':'스킬젬')+(b.variant==='transfigured'?' · 변형':b.variant==='vaal'?' · 바알':'');
+  $('#balanceModalTitle')?.removeAttribute('id');
+  $('#balanceModalContext').textContent=`${balancePack?.previousPatch||'?'} → ${balancePack?.patch||selectedPatch} · ${typeText}`;
+  const title=`<h2 class="balance-modal-name" id="balanceModalTitle">${esc(g.name)}</h2>`;
+  const body=`${title}<div class="balance-modal-en">${esc(b.nameEn||'')}</div><div class="balance-modal-verdict">${isNew?'신규 젬':`변경 항목 ${b.changes.length}개`}</div>`+
+    `<div class="balance-modal-grid">${numeric.map(balanceNumericTile).join('')}${other.map(balanceQualitativeTile).join('')}</div>`+
+    (isNew?balanceNewGemMetrics(g):'');
+  $('#balanceModalBody').innerHTML=body;
+  $('#balanceModalBasis').textContent='Lv20 · 퀄리티 20%'+(balancePack?.source?.status==='partial'?' · 선별 자료':'');
+  const source=balancePack?.source?.url||'https://www.pathofexile.com/forum/view-thread/3987254';
+  $('#balanceModalSource').href=/^https:\/\//i.test(source)?source:'https://www.pathofexile.com';
+  root.classList.add('is-open');
+  root.setAttribute('aria-hidden','false');
+  document.body.classList.add('balance-modal-open');
+  $('#balanceModalBody').scrollTop=0;
+  $('.balance-modal-sheet').focus({preventScroll:true});
+  if(isNew)appendNewGemXmlDetails(g);
+  if(!location.hash.startsWith('#balance-gem=')){
+    try{history.pushState({poeBalanceModal:true},'','#balance-gem='+encodeURIComponent(b.id));balanceHistoryOpened=true;}catch{}
+  }
+}
+function closeBalanceModal(fromPopstate=false){
+  if(!$('#balanceModal').classList.contains('is-open'))return;
+  $('#balanceModal').classList.remove('is-open');
+  $('#balanceModal').setAttribute('aria-hidden','true');
+  document.body.classList.remove('balance-modal-open');
+  if(balanceFocused?.isConnected)balanceFocused.focus({preventScroll:true});
+  if(!fromPopstate && balanceHistoryOpened && history.state?.poeBalanceModal){
+    balanceHistoryOpened=false;
+    history.back();
+  }else balanceHistoryOpened=false;
+}
+$('#versionMode').value=activeView;
+$('#versionMode').addEventListener('change',e=>{
+  if(!VIEW_MODES.includes(e.target.value))return;
+  const url=new URL(window.location.href);
+  url.searchParams.set('view',e.target.value);
+  url.hash='';
+  window.location.assign(url.href);
+});
+document.body.classList.toggle('balance-change',changeMode);
+$('#balanceFilters').hidden=!changeMode;
+if(changeMode){
+  for(const btn of document.querySelectorAll('[data-balance-filter]'))btn.addEventListener('click',()=>{
+    if(btn.dataset.balanceFilter==='new')balanceNew=!balanceNew;
+    else balanceExisting=!balanceExisting;
+    renderBalanceFilters();apply(true);
+  });
+}
+$('#balanceModalClose').addEventListener('click',()=>closeBalanceModal());
+$('#balanceModal').addEventListener('click',e=>{if(e.target.dataset.closeBalance==='true')closeBalanceModal();});
+window.addEventListener('keydown',e=>{
+  if($('#balanceModal').classList.contains('is-open')&&e.key==='Escape')closeBalanceModal();
+  if($('#balanceModal').classList.contains('is-open')&&e.key==='Tab'){
+    const focusables=Array.from($('#balanceModal').querySelectorAll('button:not([disabled]),a[href]'));
+    if(!focusables.length)return;
+    if(e.shiftKey&&document.activeElement===focusables[0]){e.preventDefault();focusables.at(-1).focus();}
+    if(!e.shiftKey&&document.activeElement===focusables.at(-1)){e.preventDefault();focusables[0].focus();}
+  }
+});
+window.addEventListener('popstate',()=>{
+  if(changeMode&&$('#balanceModal').classList.contains('is-open')&&!location.hash.startsWith('#balance-gem='))closeBalanceModal(true);
+});
+
 loadManifest();
 </script></body></html>
